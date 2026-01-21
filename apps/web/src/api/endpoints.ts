@@ -231,11 +231,15 @@ export function getStoreProducts(storeId: string, ctx: ApiContext) {
 
 // Orders (Checkout)
 export async function placeOrder(
-  payload: { items: Array<{ productId: string; qty: number }>; address: string; payment: 'COD' | 'ONLINE' },
-  ctx: ApiContext
+  items: Array<{ productId: string; quantity: number }>,
+  idempotencyKey?: string
 ) {
   try {
-    const res = await privateApi.post('/api/customer/orders', payload)
+    const res = await privateApi.post(
+      '/api/customer/orders',
+      { paymentMethod: 'cod', items },
+      idempotencyKey ? { headers: { 'X-Idempotency-Key': idempotencyKey } } : undefined
+    )
     return res.data as any
   } catch (err) {
     logPrivateAxiosError(err, 'place-order')
@@ -246,7 +250,7 @@ export async function placeOrder(
 // Orders (MVP v1 - simple payload)
 export async function createOrder(items: Array<{ productId: string; quantity: number }>, _ctx: ApiContext) {
   try {
-    const res = await privateApi.post('/api/customer/orders', { items, paymentMethod: 'COD' })
+    const res = await privateApi.post('/api/customer/orders', { items, paymentMethod: 'cod' })
     return res.data as any
   } catch (err) {
     logPrivateAxiosError(err, 'create-order')

@@ -1,6 +1,7 @@
 import { useEffect, useState, useRef } from 'react'
 import { useAuth } from '../AuthContext'
 import { apiFetch } from '../api/client'
+import { privateApi } from '../api/privateApi'
 import { track } from '../utils/track'
 
 // Shared UI helpers for status pill, label, and created time
@@ -123,11 +124,9 @@ export default function Orders() {
     const ctx = { jwt, tenant }
     try {
       setLoading(true)
-      const data = await apiFetch<any[]>(
-        '/api/customer/orders',
-        { method: 'GET' },
-        ctx
-      )
+      const data = await privateApi
+        .get('/api/customer/orders')
+        .then((res) => res.data as any[])
       console.log('[Orders] Orders from backend:', data)
       setOrders(Array.isArray(data) ? data : [])
     } catch (e) {
@@ -167,9 +166,10 @@ export default function Orders() {
     }
     // Fetch single order detail to ensure DevTools shows GET /api/customer/orders/{id}
     const tenant = (import.meta as any).env?.VITE_DEFAULT_TENANT || ''
-    const ctx = { jwt, tenant }
     setDetailLoading(true)
-    apiFetch<any>(`/api/customer/orders/${encodeURIComponent(String(selectedOrderId))}`, { method: 'GET' }, ctx as any)
+    privateApi
+      .get(`/api/customer/orders/${encodeURIComponent(String(selectedOrderId))}`)
+      .then((res) => res.data as any)
       .then((fresh) => {
         if (fresh && typeof fresh === 'object') {
           setDetailCandidate(fresh)
@@ -425,7 +425,9 @@ function OrderDetail({ order, onBack }: { order: any; onBack: () => void }) {
     const ctx = { jwt: token, tenant }
     setIsSyncing(true)
     console.log('[OrderDetail] Auto refresh start', { orderId: String(order.id || ''), tenant, hasToken: Boolean(token) })
-    apiFetch<any>(`/api/customer/orders/${encodeURIComponent(String(order.id))}`, { method: 'GET' }, ctx as any)
+    privateApi
+      .get(`/api/customer/orders/${encodeURIComponent(String(order.id))}`)
+      .then((res) => res.data as any)
       .then((fresh) => {
         if (fresh?.status && fresh.status !== order.status) {
           updateLocalOrder(fresh)
@@ -540,13 +542,10 @@ function OrderDetail({ order, onBack }: { order: any; onBack: () => void }) {
                           const tenantEnv = (import.meta as any).env?.VITE_DEFAULT_TENANT
                           const tenant = String(tenantEnv || '')
                           const token = jwt
-                          const ctx = { jwt: token, tenant }
                           console.log('[OrderDetail] GET /api/customer/orders/:id start', { tenant, hasToken: Boolean(token) })
-                          const refreshed = await apiFetch<any>(
-                            `/api/customer/orders/${encodeURIComponent(String(localOrder?.id))}`,
-                            { method: 'GET' },
-                            ctx as any
-                          )
+                          const refreshed = await privateApi
+                            .get(`/api/customer/orders/${encodeURIComponent(String(localOrder?.id))}`)
+                            .then((res) => res.data as any)
                           console.log('[OrderDetail] GET /api/customer/orders/:id success', { status: String(refreshed?.status || '') })
                           const newStatus = normalizeStatus(refreshed?.status)
                           const oldStatus = normalizeStatus(localOrder?.status)

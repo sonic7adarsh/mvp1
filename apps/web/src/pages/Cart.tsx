@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { useCart } from '../CartContext'
 import { useAuth } from '../AuthContext'
 import { apiFetch } from '../api/client'
+import { privateApi, logPrivateAxiosError } from '../api/privateApi'
 import { track } from '../utils/track'
 
 export default function Cart() {
@@ -10,18 +11,19 @@ export default function Cart() {
   const tenant = (import.meta as any).env?.VITE_DEFAULT_TENANT || ''
   const [placing, setPlacing] = useState(false)
   const [inventoryError, setInventoryError] = useState('')
-  const [successOrderId, setSuccessOrderId] = useState<string | null>(null)
+  const [successOrder, setSuccessOrder] = useState<any | null>(null)
   // Clear inline error when cart items change
   useEffect(() => { setInventoryError('') }, [items])
 
   // Absolute first render guard: show success overlay before any other UI
-  if (successOrderId) {
+  if (successOrder) {
     const onViewOrder = () => {
-      const target = successOrderId ? `#/orders?orderId=${encodeURIComponent(successOrderId)}` : '#/orders'
+      const orderId = String(successOrder?.id || '')
+      const target = orderId ? `#/orders?orderId=${encodeURIComponent(orderId)}` : '#/orders'
       window.location.hash = target
     }
     const onHome = () => {
-      setSuccessOrderId(null)
+      setSuccessOrder(null)
       window.location.hash = '#/home'
     }
     return (
@@ -64,6 +66,30 @@ export default function Cart() {
           }}>
             The store will accept your order shortly<br />
             You’ll be notified when the status changes
+          </div>
+
+          {/* Success details from response.order */}
+          <div style={{
+            textAlign: 'left',
+            background: '#F9FAFB',
+            border: '1px solid #E5E7EB',
+            borderRadius: 12,
+            padding: 12,
+            marginBottom: 16,
+            color: '#111'
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13 }}>
+              <span style={{ color: '#6B7280' }}>Order ID</span>
+              <span style={{ fontWeight: 700 }}>{String(successOrder?.id || '')}</span>
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, marginTop: 6 }}>
+              <span style={{ color: '#6B7280' }}>Status</span>
+              <span style={{ fontWeight: 700 }}>{String(successOrder?.status || 'PLACED')}</span>
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, marginTop: 6 }}>
+              <span style={{ color: '#6B7280' }}>Total</span>
+              <span style={{ fontWeight: 700 }}>{typeof successOrder?.total === 'number' ? `₹${successOrder.total}` : '—'}</span>
+            </div>
           </div>
 
           <button
@@ -235,7 +261,7 @@ export default function Cart() {
       
 
       {/* Price Summary (fixed above the checkout button) */}
-      {!successOrderId && (
+      {!successOrder && (
         <div style={summaryStyle}>
           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
             <span style={{ color: '#6B7280' }}>Subtotal</span>
@@ -260,7 +286,7 @@ export default function Cart() {
       ) : null}
 
       {/* Checkout CTA fixed above footer (hidden when success screen is visible) */}
-      {!successOrderId && (
+      {!successOrder && (
       <button
         type="button"
         style={items.length === 0 || placing ? disabledButtonStyle : checkoutButtonStyle}
@@ -276,22 +302,20 @@ export default function Cart() {
           const ctx = { jwt, tenant }
           try {
             const payloadItems = items.map((i) => ({ productId: i.productId, quantity: i.quantity }))
-            const created = await apiFetch<any>(
-              '/api/customer/orders',
-              { method: 'POST', body: JSON.stringify({ items: payloadItems, paymentMethod: 'COD' }) },
-              ctx
-            )
+            const body = JSON.stringify({ paymentMethod: 'cod', items: payloadItems })
+            const curl = `curl -X POST "http://localhost:8080/api/customer/orders" -H "Content-Type: application/json" -H "Authorization: Bearer ${jwt}" -H "X-Tenant-Domain: ${tenant}" --data-raw '${body}'`
+            console.log('[curl][place-order]', curl)
+            const created = await privateApi
+              .post('/api/customer/orders', JSON.parse(body))
+              .then((res) => res.data as any)
             console.log('[Cart] Order created successfully')
             // Clear inline error on success
             setInventoryError('')
             // Save minimal lastOrder for repeat ordering (no price/status)
             try {
-              const storeId = String(
-                created?.store?.id ?? created?.storeId ?? created?.store_id ?? created?.store?._id ?? ''
-              )
-              const storeName = String(
-                created?.store?.name ?? created?.storeName ?? 'Store'
-              )
+              const order = (created as any)?.order
+              const storeId = String(order?.storeId || '')
+              const storeName = 'Store'
               const lastOrder = { storeId, storeName, items: payloadItems }
               const active = window.localStorage.getItem('repeatOrderingActive')
               if (active === '1') {
@@ -305,15 +329,24 @@ export default function Cart() {
             // Show success state first, then clear cart
             try {
               console.log('[Cart] Created order response:', created)
-              const id = String((created as any)?.id || '')
-              setSuccessOrderId(id)
-              try { track('order_placed', { orderId: id, itemsCount: payloadItems.length }) } catch {}
+              const order = (created as any)?.order
+              if (!order || !order.id) {
+                console.error('[Cart] Missing order in response', created)
+                throw new Error('MISSING_ORDER')
+              }
+              setSuccessOrder(order)
+              try { track('order_placed', { orderId: order.id, itemsCount: payloadItems.length }) } catch {}
             } catch {
-              setSuccessOrderId(null)
+              setSuccessOrder(null)
             }
             clearCart()
           } catch (e) {
+            // Rich axios error logging for backend parity
+            try { logPrivateAxiosError(e, 'cart-place-order') } catch {}
             console.error('[Cart] Place Order failed', e)
+            // Helpful debug breadcrumbs
+            console.log('[Cart][debug] jwt present?', Boolean(jwt), 'tenant', tenant)
+            console.log('[Cart][debug] payload', items.map((i) => ({ productId: i.productId, quantity: i.quantity })))
             // UI-only inventory/order failure detection
             const status = (e && (e as any).status) as number | undefined
             const code = String((e && (e as any).code) || '')

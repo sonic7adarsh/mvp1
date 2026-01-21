@@ -32,6 +32,16 @@ export default function SellerLogin() {
     color: '#111',
     lineHeight: 1.4,
   }
+  const roleBadgeStyle: React.CSSProperties = {
+    display: 'inline-block',
+    marginTop: 8,
+    padding: '4px 8px',
+    borderRadius: 999,
+    background: '#FEF3C7',
+    color: '#92400E',
+    fontSize: 12,
+    fontWeight: 700,
+  }
   const subtitleStyle: React.CSSProperties = {
     fontSize: 14,
     color: '#555',
@@ -128,6 +138,7 @@ export default function SellerLogin() {
       <div style={contentStyle}>
         <div style={headingStyle}>
           <div style={titleStyle}>Seller Login</div>
+          <div style={roleBadgeStyle}>SELLER</div>
           <div style={subtitleStyle}>Login to manage your store and orders</div>
         </div>
 
