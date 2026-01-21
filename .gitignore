@@ -1,0 +1,10 @@
+# Global ignores for the monorepo
+**/node_modules/
+**/dist/
+**/.env
+**/.DS_Store
+**/.vite
+**/coverage/
+**/.cache/
+**/.turbo/
+**/.parcel-cache/

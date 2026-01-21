@@ -1,0 +1,13 @@
+{
+  "name": "bharat-app-femvp1",
+  "private": true,
+  "version": "0.0.1",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "web": "npm run dev --workspace web",
+    "mobile": "npm start --workspace mobile"
+  }
+}
