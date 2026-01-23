@@ -1,0 +1,50 @@
+/* Global box-sizing and overflow control */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+/* Root reset and mobile-first constraints */
+html,
+body {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  overflow-x: hidden;
+  background: #F7F7FB;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont;
+}
+
+/* App container remains transparent; SafeContainer drives layout */
+.app {
+  max-width: 420px;
+  margin: 0 auto;
+  background: transparent;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Minimal element resets */
+button {
+  cursor: pointer;
+  border: none;
+}
+
+/* Global input styles for clean, consistent UI */
+input,
+textarea {
+  border: 1px solid #E5E7EB;
+  border-radius: 8px;
+  height: 48px;
+  padding: 12px;
+  font-size: 16px;
+  outline: none;
+  box-shadow: none;
+  background: #FFFFFF;
+}
+
+input:focus {
+  border-color: #6C2BD9;
+}
