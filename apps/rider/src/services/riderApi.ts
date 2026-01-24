@@ -2,7 +2,7 @@ export type ApiError = { status: number; code?: string; message?: string }
 
 function getTenantHeader(): string {
   const tenantEnv = (import.meta as any).env?.VITE_DEFAULT_TENANT
-  return tenantEnv && String(tenantEnv).length > 0 ? String(tenantEnv) : ''
+  return tenantEnv && String(tenantEnv).length > 0 ? String(tenantEnv) : 'tenantA'
 }
 
 function authHeader(): string {
@@ -37,11 +37,8 @@ export type AssignedOrder = { deliveryId: string; orderId: string; storeId: stri
 
 export const riderApi = {
   // Available orders list for HOME
-  getAvailableOrders: () =>
-    apiFetch<{ orders: any[] }>(
-      '/api/rider/orders/available',
-      { method: 'GET' }
-    ),
+  // (Moved to below to avoid duplicates)
+
   // Rider's own orders list for MY ORDERS
   getMyOrders: () =>
     apiFetch<{ orders: AssignedOrder[] }>(
@@ -122,26 +119,35 @@ export const riderApi = {
       body: JSON.stringify({ otp }),
     }),
   // Preferred: use deliveryId for deliver
+  completeDelivery: (deliveryId: string, otp: string) =>
+    apiFetch<any>(`/api/rider/orders/${encodeURIComponent(deliveryId)}/deliver`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ otp }),
+    }),
   deliverByDeliveryId: (deliveryId: string, otp: string) =>
     apiFetch<any>(`/api/rider/orders/${encodeURIComponent(deliveryId)}/deliver`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ otp }),
     }),
-  startDelivery: (orderId: string) =>
-    apiFetch<any>(`/api/rider/orders/${encodeURIComponent(orderId)}/start-delivery`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({}),
-    }),
-  // Preferred: use deliveryId for start-delivery
-  startDeliveryByDeliveryId: (deliveryId: string) =>
+  startDelivery: (deliveryId: string) =>
     apiFetch<any>(`/api/rider/orders/${encodeURIComponent(deliveryId)}/start-delivery`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({}),
     }),
+
   // Orders tab (job board)
+  getCompletedOrders: async () => {
+    const data = await apiFetch<any>(
+      '/api/rider/orders/history',
+      { method: 'GET' }
+    )
+    // Handle both 'deliveries' and 'orders' keys for safety
+    const list = (data?.deliveries ?? data?.orders ?? []) as any[]
+    return { deliveries: list }
+  },
   getAvailableOrders: async () => {
     const data = await apiFetch<any>(
       '/api/rider/orders/available',
@@ -179,6 +185,4 @@ export const riderApi = {
     apiFetch<{ total: number; currency?: string }>(`/api/rider/earnings`, { method: 'GET' }),
   getMe: () =>
     apiFetch<{ active_role?: string; allowed_roles?: string[] }>(`/api/user/me`, { method: 'GET' }),
-  getOrderHistory: () =>
-    apiFetch<{ orders: any[] }>(`/api/rider/orders/history`, { method: 'GET' }),
 }

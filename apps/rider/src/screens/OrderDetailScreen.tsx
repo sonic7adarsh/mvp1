@@ -36,7 +36,7 @@ export default function OrderDetailScreen({ orderId }: { orderId: string }) {
 
   async function startDelivery() {
     if (!order) return
-    try { await riderApi.startDelivery(String(order.orderId || order.id)) } catch (e) { console.error('Start failed', e) }
+    try { await riderApi.startDelivery(String(order.deliveryId || order.orderId || order.id)) } catch (e) { console.error('Start failed', e) }
     await load()
   }
 

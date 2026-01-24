@@ -1,6 +1,6 @@
 import React from 'react'
 
-export default function OtpInput({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+export default function OtpInput({ value, onChange, autoFocus }: { value: string; onChange: (v: string) => void; autoFocus?: boolean }) {
   const inputStyle: React.CSSProperties = {
     width: '100%',
     height: 48,
@@ -32,6 +32,7 @@ export default function OtpInput({ value, onChange }: { value: string; onChange:
       value={value}
       onChange={handleChange}
       style={inputStyle}
+      autoFocus={autoFocus}
     />
   )
 }

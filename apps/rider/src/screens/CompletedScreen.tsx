@@ -13,8 +13,10 @@ export default function CompletedScreen() {
   async function load() {
     try {
       setLoading(true)
-      const resp = await riderApi.getOrderHistory()
-      setOrders((resp && (resp as any).orders) || [])
+      const resp = await riderApi.getCompletedOrders()
+      const list = (resp && resp.deliveries) || []
+      console.log('CompletedScreen list:', list)
+      setOrders(list)
     } catch (e) { console.error('[Completed] load failed', e) }
     finally { setLoading(false) }
   }
@@ -29,7 +31,7 @@ export default function CompletedScreen() {
         <div style={cardStyle}><div style={{ color: '#6B7280', fontSize: 14 }}>No completed deliveries yet</div></div>
       )}
       {orders.map((o) => (
-        <div key={o.orderId || o.id} style={cardStyle}>
+        <div key={o.deliveryId || o.id} style={{...cardStyle, marginBottom: 16}}>
           <div style={{ display: 'flex', justifyContent: 'space-between' }}>
             <div style={{ fontSize: 14, fontWeight: 700, color: '#1F1F1F' }}>Order #{o.orderId || o.id}</div>
             <div style={subStyle}>{o.storeName || o.storeId || 'Store'}</div>

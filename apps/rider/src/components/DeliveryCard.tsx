@@ -37,7 +37,10 @@ export default function DeliveryCard({ deliveryId, orderId, status, storeId }: {
           type="button"
           style={btnStyle}
           onClick={async () => {
-            try { await riderApi.startDelivery(orderId) } catch (e) { console.error('[DeliveryCard] start failed', e) }
+            try { 
+              if (!deliveryId) return
+              await riderApi.startDelivery(deliveryId) 
+            } catch (e) { console.error('[DeliveryCard] start failed', e) }
             // Optionally navigate to detail for OTP
             window.location.hash = `#/order/${orderId}`
           }}

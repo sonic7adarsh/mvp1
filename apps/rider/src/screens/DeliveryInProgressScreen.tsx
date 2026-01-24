@@ -54,9 +54,9 @@ export default function DeliveryInProgressScreen() {
   }
 
   const start = async () => {
-    if (!order || !order.orderId) return
+    if (!order || !order.deliveryId) return
     try {
-      await riderApi.startDelivery(order.orderId)
+      await riderApi.startDelivery(order.deliveryId)
       // After starting, refresh assigned order to reflect OUT_FOR_DELIVERY and show OTP
       const updated = await riderApi.getAssignedOrder()
       setOrder(updated)
@@ -81,9 +81,9 @@ export default function DeliveryInProgressScreen() {
                 type="button"
                 style={btnStyle}
                 disabled={(otp || '').trim().length !== 6}
-                onClick={deliver}
+                onClick={onCompleteDelivery}
               >
-                Deliver Order
+                Complete Delivery
               </button>
             </>
           )}

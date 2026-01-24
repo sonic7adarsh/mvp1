@@ -45,14 +45,17 @@ export default function DeliveriesScreen() {
     try { await riderApi.pickupDelivery(deliveryId) } catch (e) { console.error('Pickup failed', e) }
     await load()
   }
-  async function start(orderId: string) {
-    try { await riderApi.startDelivery(orderId) } catch (e) { console.error('Start delivery failed', e) }
+  async function start(deliveryId: string) {
+    try {
+      await riderApi.startDelivery(deliveryId)
+      // toast success not available here, but we can log
+      console.log('OTP sent to customer')
+    } catch (e: any) { console.error('Start delivery failed', e) }
     await load()
   }
-  async function deliver(orderId: string) {
-    const otp = otpMap[orderId] || ''
-    if (otp.length !== 6) return
-    try { await riderApi.deliverOrder(orderId, otp) } catch (e) { console.error('Deliver failed', e) }
+  async function onCompleteDelivery(deliveryId: string) {
+    const otp = otpMap[deliveryId] || ''
+    try { await riderApi.completeDelivery(deliveryId, otp) } catch (e) { console.error('Deliver failed', e) }
     await load()
   }
 
@@ -87,12 +90,12 @@ export default function DeliveriesScreen() {
                 <button style={btnPrimary} onClick={() => handlePickup(order)}>Pick Up Order</button>
               )}
               {String(order.status) === 'PICKED_UP' && (
-                <button style={btnPrimary} onClick={() => start(String(order.orderId || order.id))}>Start Delivery</button>
+                <button style={btnPrimary} onClick={() => start(String(order.deliveryId || ''))}>Start Delivery</button>
               )}
               {String(order.status) === 'OUT_FOR_DELIVERY' && (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                  <OtpInput value={otpMap[String(order.orderId || order.id)] || ''} onChange={(v) => setOtp(String(order.orderId || order.id), v)} />
-                  <button style={{ ...btnPrimary, opacity: (otpMap[String(order.orderId || order.id)] || '').length === 6 ? 1 : 0.6 }} disabled={(otpMap[String(order.orderId || order.id)] || '').length !== 6} onClick={() => deliver(String(order.orderId || order.id))}>Mark Delivered</button>
+                  <OtpInput value={otpMap[String(order.deliveryId || order.orderId)] || ''} onChange={(v) => setOtp(String(order.deliveryId || order.orderId), v)} />
+                  <button style={{ ...btnPrimary, opacity: (otpMap[String(order.deliveryId || order.orderId)] || '').length === 6 ? 1 : 0.6 }} disabled={(otpMap[String(order.deliveryId || order.orderId)] || '').length !== 6} onClick={() => onCompleteDelivery(String(order.deliveryId || order.orderId))}>Complete Delivery</button>
                 </div>
               )}
             </div>
