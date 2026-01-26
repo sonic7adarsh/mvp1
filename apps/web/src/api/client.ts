@@ -128,7 +128,25 @@ export async function apiFetch<T>(
 
   // If no body
   if (resp.status === 204) return undefined as unknown as T
-  return (await resp.json()) as T
+
+  // Defensive JSON parsing: Prevent "Unexpected token <" crash
+  const text = await resp.text()
+  try {
+    // If empty body, return empty object/null based on T? 
+    // Usually APIs return {} or [] for empty JSON.
+    if (!text || text.trim().length === 0) {
+      return {} as T
+    }
+    return JSON.parse(text) as T
+  } catch (err) {
+    console.error('[api] Failed to parse JSON response', {
+      url,
+      status: resp.status,
+      preview: text.substring(0, 200), // Log first 200 chars to see if it's HTML
+    })
+    // Throw a specific error we can catch
+    throw new Error(`API returned invalid JSON: ${text.substring(0, 50)}...`)
+  }
 }
 
 export function handleApiError(err: any): string {

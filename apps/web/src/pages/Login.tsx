@@ -80,8 +80,21 @@ export default function Login() {
       // Persist and set global auth
       localStorage.setItem('customer_token', token)
       login(token, { roles })
-      // Redirect to home
-      window.location.hash = '/home'
+      
+      // Check for redirect param
+      const hashParts = window.location.hash.split('?')
+      let redirectTarget = '/home'
+      
+      if (hashParts.length > 1) {
+        const params = new URLSearchParams(hashParts[1])
+        const redirect = params.get('redirect')
+        if (redirect) {
+            redirectTarget = redirect
+        }
+      }
+      
+      // Redirect
+      window.location.hash = redirectTarget
     } catch (e) {
       setError(handleApiError(e))
     } finally {

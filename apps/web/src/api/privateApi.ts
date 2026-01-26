@@ -48,7 +48,15 @@ export function logPrivateAxiosError(err: unknown, context: string) {
     const { status, data, headers } = axErr.response
     const method = axErr.config?.method
     const url = axErr.config?.url
-    console.error(`[privateApi] ${context} http error`, { status, method, url, headers, data })
+    const requestHeaders = axErr.config?.headers // Capture request headers
+    console.error(`[privateApi] ${context} http error`, { 
+      status, 
+      method, 
+      url, 
+      responseHeaders: headers, 
+      requestHeaders, // Log request headers to debug auth/tenant
+      data 
+    })
   } else {
     console.error(`[privateApi] ${context} network error`, err)
   }

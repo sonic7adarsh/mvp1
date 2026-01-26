@@ -9,7 +9,8 @@ export default function Profile() {
   const headerStyle: React.CSSProperties = {
     position: 'sticky',
     top: 0,
-    background: '#FFFFFF',
+    background: '#c9f2f6', // User specified Cyan
+    borderBottom: '1px solid #A5E0E6',
     height: 56,
     display: 'flex',
     alignItems: 'center',
@@ -121,7 +122,7 @@ export default function Profile() {
         <h1 style={{ fontSize: 16, fontWeight: 700 }}>Profile</h1>
       </header>
 
-      <main style={mainStyle}>
+      <main className="no-scrollbar" style={mainStyle}>
         {/* User card */}
         <div style={userCardStyle}>
           <div style={avatarStyle} />

@@ -27,6 +27,12 @@ body {
   min-width: 320px;
   min-height: 100vh;
   background: #F7F8FA;
+  /* Hide scrollbar globally for body */
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+body::-webkit-scrollbar {
+  display: none;
 }
 
 h1 { font-size: 1.5em; line-height: 1.2; }
@@ -37,3 +43,12 @@ button { font-family: inherit; }
 .page { padding: 12px; }
 .bottom-nav { position: fixed; left: 0; right: 0; bottom: 0; background: #fff; border-top: 1px solid #e5e7eb; display: flex; justify-content: space-around; padding: 8px; }
 .bottom-nav button { flex: 1; padding: 10px; border: 1px solid #e5e7eb; border-radius: 999px; background: #f9fafb; }
+
+/* Utility for horizontal scrolling without scrollbars */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}

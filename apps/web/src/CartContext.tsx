@@ -2,6 +2,7 @@ import { createContext, useContext, useMemo, useState } from 'react'
 
 export type CartItem = {
   productId: string
+  storeId?: string
   name?: string
   price?: number
   quantity: number

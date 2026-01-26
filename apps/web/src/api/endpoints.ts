@@ -14,6 +14,34 @@ export async function getCustomerOrders(_ctx: ApiContext) {
   }
 }
 
+// Global Discovery
+export function searchGlobal(query: string, lat: number, lng: number, ctx: ApiContext) {
+  const qs = new URLSearchParams()
+  qs.set('q', query)
+  qs.set('lat', String(lat))
+  qs.set('lng', String(lng))
+  return apiFetch<any>(`/api/search?${qs.toString()}`, { method: 'GET' }, ctx)
+}
+
+export function getGlobalCategories(lat?: number, lng?: number, ctx?: ApiContext) {
+  const qs = new URLSearchParams()
+  if (lat !== undefined) qs.set('lat', String(lat))
+  if (lng !== undefined) qs.set('lng', String(lng))
+  
+  // Safe context fallback
+  const safeCtx = ctx || { jwt: '', tenant: '' }
+  
+  return apiFetch<any[]>(`/api/categories/global?${qs.toString()}`, { method: 'GET' }, safeCtx)
+}
+
+export function getProductsByCategory(categoryId: string, lat: number, lng: number, ctx: ApiContext) {
+  const qs = new URLSearchParams()
+  qs.set('categoryId', categoryId)
+  qs.set('lat', String(lat))
+  qs.set('lng', String(lng))
+  return apiFetch<any[]>(`/api/products/by-category?${qs.toString()}`, { method: 'GET' }, ctx)
+}
+
 export function cancelCustomerOrder(orderId: string, reason: string, ctx: ApiContext) {
   return apiFetch<void>(
     `/api/storefront/orders/${orderId}/cancel`,
@@ -200,8 +228,14 @@ export function getServiceability(
   qs.set('storeId', params.storeId)
   qs.set('lat', String(params.lat))
   qs.set('lng', String(params.lng))
-  if (params.tenantId && params.tenantId.length > 0) qs.set('tenantId', params.tenantId)
   return apiFetch<any>(`/api/storefront/serviceability?${qs.toString()}`, { method: 'GET' }, ctx)
+}
+
+export function getStores(lat: number, lng: number, ctx: ApiContext) {
+  const qs = new URLSearchParams()
+  qs.set('lat', String(lat))
+  qs.set('lng', String(lng))
+  return apiFetch<any[]>(`/api/storefront/stores?${qs.toString()}`, { method: 'GET' }, ctx)
 }
 
 export function getCategories(ctx: ApiContext) {
@@ -214,10 +248,6 @@ export function getNearbyStores(ctx: ApiContext) {
 
 // Storefront stores list (customer-facing)
 export function getStorefrontStores(ctx: ApiContext) {
-  return apiFetch<any[]>(`/api/storefront/stores`, { method: 'GET' }, ctx)
-}
-
-export function getStores(ctx: ApiContext) {
   return apiFetch<any[]>(`/api/storefront/stores`, { method: 'GET' }, ctx)
 }
 

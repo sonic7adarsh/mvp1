@@ -8,6 +8,7 @@
   ],
   "scripts": {
     "web": "npm run dev --workspace web",
+    "rider": "npm run dev --workspace rider-web",
     "mobile": "npm start --workspace mobile"
   }
 }

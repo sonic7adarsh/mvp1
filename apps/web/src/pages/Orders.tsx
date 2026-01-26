@@ -88,7 +88,7 @@ const normalizeStatus = (status?: string) => {
 
 export default function Orders() {
   const { jwt } = useAuth()
-  const tenant = (import.meta as any).env?.VITE_DEFAULT_TENANT || ''
+  const tenant = (import.meta as any).env?.VITE_DEFAULT_TENANT || 'tenantA'
   // Keep hash in React state so UI re-renders on hash changes
   const [hash, setHash] = useState(
     typeof window !== 'undefined' ? window.location.hash : ''
@@ -246,8 +246,8 @@ function OrdersList({ orders, loading }: { orders: any[]; loading: boolean }) {
   const headerStyle: React.CSSProperties = {
     position: 'sticky',
     top: 0,
-    background: '#FFFFFF',
-    borderBottom: '1px solid #E5E7EB',
+    background: '#c9f2f6', // User specified Cyan
+    borderBottom: '1px solid #A5E0E6',
     height: 56,
     display: 'flex',
     alignItems: 'center',
@@ -257,6 +257,7 @@ function OrdersList({ orders, loading }: { orders: any[]; loading: boolean }) {
   const mainStyle: React.CSSProperties = {
     flex: 1,
     overflowY: 'auto',
+    WebkitOverflowScrolling: 'touch',
     padding: 16,
     paddingBottom: 72,
   }
@@ -482,7 +483,7 @@ function OrderDetail({ order, onBack }: { order: any; onBack: () => void }) {
           <h1 style={{ fontSize: 16, fontWeight: 700 }}>Order Details</h1>
         </div>
       </header>
-      <main style={mainStyle}>
+      <main className="no-scrollbar" style={mainStyle}>
         {/* Progress tracker: text-only, vertical */}
         {(() => {
           const s = normalizeStatus(localOrder?.status)

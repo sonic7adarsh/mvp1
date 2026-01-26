@@ -6,9 +6,12 @@ import Store from './pages/Store'
 import Cart from './pages/Cart'
 import Orders from './pages/Orders'
 import Profile from './pages/Profile'
+import CategoryProducts from './pages/CategoryProducts'
+import SelectLocation from './pages/SelectLocation'
 import './index.css'
 import { CartProvider, useCart } from './CartContext'
-import { AuthProvider } from './AuthContext'
+import { AuthProvider, useAuth } from './AuthContext'
+import { LocationProvider, useLocation } from './context/LocationContext'
 
 function getRoute(): string {
   const fullHash = window.location.hash || '#/home'
@@ -20,34 +23,12 @@ function navigate(path: string) {
   window.location.hash = path
 }
 
-export default function App() {
-  const appStyle: React.CSSProperties = {
-    maxWidth: '420px',
-    margin: '0 auto',
-    background: '#FFFFFF',
-    height: '100vh',
-    display: 'flex',
-    flexDirection: 'column',
-  }
-
-  const bottomNavStyle: React.CSSProperties = {
-    position: 'fixed',
-    bottom: 0,
-    left: '50%',
-    transform: 'translateX(-50%)',
-    width: '100%',
-    maxWidth: '420px',
-    height: '56px',
-    background: '#FFFFFF',
-    borderTop: '1px solid #E5E7EB',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'space-around',
-    boxShadow: '0 -2px 8px rgba(0,0,0,0.06)',
-    zIndex: 30,
-  }
+// Gated content wrapper
+function Content() {
   const [route, setRoute] = useState<string>(getRoute())
-
+  const { location } = useLocation()
+  const { isAuthenticated } = useAuth()
+  
   useEffect(() => {
     if (!window.location.hash) {
       window.location.hash = '/home'
@@ -57,29 +38,78 @@ export default function App() {
     return () => window.removeEventListener('hashchange', onHashChange)
   }, [])
 
+  // Location Gating Logic
+  const isPublicRoute = route === '/login' || route === '/select-location'
+  
+  if (!isPublicRoute && (!location || !location.confirmed)) {
+    // Soft check - allow home but maybe show fallback UI there
+    // No force redirect on app load
+    if (route !== '/home' && route !== '/select-location') {
+       // Only protect other routes if critical
+    }
+  }
+
   let Page: () => React.ReactElement
-  switch (route) {
-    case '/login':
-      Page = Login
-      break
-    case '/home':
-      Page = Home
-      break
-    case '/store':
-      Page = Store
-      break
-    case '/cart':
-      Page = Cart
-      break
-    case '/orders':
-      Page = Orders
-      break
-    case '/profile':
-      Page = Profile
-      break
-    default:
-      Page = Home
-      break
+
+  if (route.startsWith('/category/')) {
+     Page = CategoryProducts
+  } else if (route.startsWith('/stores/')) {
+    // Extract storeId if needed by Store page, or Store page can parse hash
+    Page = Store
+  } else {
+    switch (route) {
+      case '/login':
+        Page = Login
+        break
+      case '/select-location':
+        Page = SelectLocation
+        break
+      case '/home':
+        Page = Home
+        break
+      case '/store':
+        Page = Store
+        break
+      case '/cart':
+        Page = Cart
+        break
+      case '/orders':
+        Page = Orders
+        break
+      case '/profile':
+        Page = Profile
+        break
+      default:
+        Page = Home
+        break
+    }
+  }
+
+  const appStyle: React.CSSProperties = {
+    maxWidth: '420px',
+    margin: '0 auto',
+    background: '#FFFFFF',
+    height: '100dvh', // Use dynamic viewport height
+    display: 'flex',
+    flexDirection: 'column',
+    overflow: 'hidden', // Prevent body scroll, let pages handle it
+  }
+
+  const bottomNavStyle: React.CSSProperties = {
+    position: 'fixed',
+    bottom: 0,
+    left: '50%',
+    transform: 'translateX(-50%)',
+    width: '100%',
+    maxWidth: '420px',
+    height: '60px',
+    background: '#c9f2f6', // User specified Cyan
+    borderTop: '1px solid #A5E0E6', // Slightly darker Cyan border
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-around',
+    boxShadow: '0 -2px 8px rgba(0,0,0,0.06)',
+    zIndex: 50,
   }
 
   const tabStyle = (active: boolean): React.CSSProperties => ({
@@ -127,15 +157,14 @@ export default function App() {
   const isOrders = route === '/orders'
   const isCart = route === '/cart'
   const isProfile = route === '/profile'
-  const isSeller = false
+  
+  const hideNav = route === '/select-location' || route === '/login' || isCart
 
   return (
-    <AuthProvider>
-      <CartProvider>
-        <div className="app" style={appStyle}>
-          <Page />
-          {(!isSeller) && (
-          <nav className="bottom-nav" style={bottomNavStyle} role="navigation" aria-label="Primary">
+    <div className="app" style={appStyle}>
+      <Page />
+      {!hideNav && (
+        <nav className="bottom-nav" style={bottomNavStyle} role="navigation" aria-label="Primary">
           <a
             href="#/home"
             onClick={(e) => { e.preventDefault(); navigate('/home') }}
@@ -155,28 +184,45 @@ export default function App() {
             <span>Cart</span>
             <CartBadge />
           </a>
-            <a
-              href="#/orders"
-              onClick={(e) => { e.preventDefault(); navigate('/orders') }}
-              style={tabStyle(isOrders)}
-              aria-current={isOrders ? 'page' : undefined}
-            >
-              <span style={iconStyle(isOrders)}>🧾</span>
-              <span>Orders</span>
-            </a>
-            <a
-              href="#/profile"
-              onClick={(e) => { e.preventDefault(); navigate('/profile') }}
-              style={tabStyle(isProfile)}
-              aria-current={isProfile ? 'page' : undefined}
-            >
-              <span style={iconStyle(isProfile)}>👤</span>
-              <span>Profile</span>
-            </a>
-          </nav>
-          )}
-        </div>
-      </CartProvider>
+          <a
+            href="#/orders"
+            onClick={(e) => { e.preventDefault(); navigate('/orders') }}
+            style={tabStyle(isOrders)}
+            aria-current={isOrders ? 'page' : undefined}
+          >
+            <span style={iconStyle(isOrders)}>🧾</span>
+            <span>Orders</span>
+          </a>
+          <a
+            href="#/profile"
+            onClick={(e) => { 
+              e.preventDefault()
+              if (!isAuthenticated) {
+                navigate('/login?redirect=/profile')
+              } else {
+                navigate('/profile')
+              }
+            }}
+            style={tabStyle(isProfile)}
+            aria-current={isProfile ? 'page' : undefined}
+          >
+            <span style={iconStyle(isProfile)}>👤</span>
+            <span>Profile</span>
+          </a>
+        </nav>
+      )}
+    </div>
+  )
+}
+
+export default function App() {
+  return (
+    <AuthProvider>
+      <LocationProvider>
+        <CartProvider>
+          <Content />
+        </CartProvider>
+      </LocationProvider>
     </AuthProvider>
   )
 }
