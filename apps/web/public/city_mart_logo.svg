@@ -6,19 +6,28 @@
        - Color: All Black (#000000)
        - Stroke: Reduced to 20 for sharper look.
   -->
-  <g transform="translate(25, -50) scale(0.95)">
-      <!-- City Skyline inside the Cart -->
-      <!-- Buildings -->
-      <path d="M160 250 V 160 H 200 V 250" fill="#000000" />
-      <path d="M210 250 V 120 H 260 V 250" fill="#000000" />
-      <path d="M270 250 V 150 H 320 V 250" fill="#000000" />
-      <path d="M330 250 V 180 H 370 V 250" fill="#000000" />
+  <g transform="translate(0, -50) scale(0.95)">
+      <!-- McDonald's Style Arches 'M' inside the Cart -->
+      <!-- Path draws two arches:
+           1. Left Arch: Starts bottom-left, curves up and down to center.
+           2. Right Arch: Starts center, curves up and down to bottom-right.
+           Stroke width gives it the body.
+      -->
+      <path d="M 220 330 Q 220 130 300 230 Q 380 130 380 330" 
+            fill="none" 
+            stroke="#000000" 
+            stroke-width="40" 
+            stroke-linecap="round" 
+            stroke-linejoin="round" />
 
       <!-- Shopping Cart Lines -->
       <!-- Handle -->
-      <path d="M80 80 H 130 L 160 250" stroke="#000000" stroke-width="20" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+      <!-- Adjusted: Connects to y=160 instead of y=250 to shorten the visual handle length -->
+      <path d="M80 80 H 130 L 160 160" stroke="#000000" stroke-width="20" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+      
       <!-- Basket Bottom/Side -->
-      <path d="M160 250 L 190 350 H 400 L 440 250 H 160" stroke="#000000" stroke-width="20" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+      <!-- Adjusted: Top rim raised from y=250 to y=160 to make the basket much deeper/taller -->
+      <path d="M160 160 L 190 350 H 400 L 440 160 H 160" stroke="#000000" stroke-width="20" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
       
       <!-- Wheels -->
       <circle cx="210" cy="390" r="30" fill="#000000" />

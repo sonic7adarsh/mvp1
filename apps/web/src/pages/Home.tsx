@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react'
 import { useAuth } from '../AuthContext'
-import { getStores } from '../api/endpoints'
+import { getStores, getCategories } from '../api/endpoints'
 import { track } from '../utils/track'
 import { Skeleton } from '../components/Skeleton'
 import { StoreCard } from '../components/StoreCard'
@@ -8,31 +8,49 @@ import type { Store } from '../components/StoreCard'
 import { useLocation } from '../context/LocationContext'
 import { LocationBottomSheet } from '../components/LocationBottomSheet'
 import { CategoryGrid } from '../components/CategoryGrid'
+import { useTranslation } from 'react-i18next'
 
 export default function Home() {
+  const { t } = useTranslation()
   const { jwt } = useAuth()
-  const { location, requestCurrentLocation } = useLocation()
-  const tenant = (import.meta as any).env?.VITE_DEFAULT_TENANT || 'tenantA'
+  const { location, requestCurrentLocation, isDetecting } = useLocation()
   
   const [stores, setStores] = useState<Store[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [selectedCategory, setSelectedCategory] = useState<string>('all')
+  const [categories, setCategories] = useState<string[]>(['all'])
   const [searchQuery, setSearchQuery] = useState('')
   const [showLocationSheet, setShowLocationSheet] = useState(false)
+
+  // Handle URL params for deep linking (e.g. from Cart)
+  useEffect(() => {
+    const hash = window.location.hash
+    if (hash.includes('?')) {
+      const query = hash.split('?')[1]
+      const params = new URLSearchParams(query)
+      const cat = params.get('category')
+      if (cat) {
+        setSelectedCategory(cat)
+      }
+    }
+  }, [])
 
   // STRICT: NO Auto-Fetch on load. User must initiate.
   
   // Fetch Stores when location is available
   useEffect(() => {
-    if (!location?.lat || !location?.lng) return
+    // Precise Location: Strictly depends on lat/lng being available
+    if (!location?.confirmed) return
 
     async function fetchStores() {
       setLoading(true)
       setError('')
       try {
-        const { lat, lng } = location!
-        const data = await getStores(lat, lng, { jwt, tenant })
+        // Pass precise coords for backend filtering
+        const lat = location?.lat || 0
+        const lng = location?.lng || 0
+        const data = await getStores(lat, lng, { jwt })
         setStores(data || [])
       } catch (e) {
         console.error(e)
@@ -43,7 +61,7 @@ export default function Home() {
     }
 
     fetchStores()
-  }, [location, jwt, tenant])
+  }, [location, jwt])
 
   // Safe Filtering Logic (Prevent Crashes)
   const filteredStores = React.useMemo(() => {
@@ -73,21 +91,28 @@ export default function Home() {
     })
   }, [stores, selectedCategory, searchQuery])
 
-  // Categories from Enum/Backend (STRICT: No 'home')
-  const categories = [
-      'all', 
-      'grocery', 
-      'fresh', 
-      'dairy', 
-      'snacks', 
-      'beauty', 
-      'household', 
-      'baby', 
-      'electronics', 
-      'pharmacy', 
-      'automotive',
-      'restaurant'
-  ]
+  // Fetch Categories
+  useEffect(() => {
+    async function fetchCategories() {
+      try {
+        const cats = await getCategories({ jwt })
+        if (Array.isArray(cats)) {
+          // Robust mapping for strings or objects
+          const mapped = cats.map((c: any) => {
+             if (typeof c === 'string') return c.toLowerCase()
+             // Try common fields for category name/slug
+             return c.slug || c.name || c.id || ''
+          }).filter(Boolean)
+          
+          const unique = Array.from(new Set(['all', ...mapped]))
+          setCategories(unique)
+        }
+      } catch (e) {
+        console.error('Category fetch failed', e)
+      }
+    }
+    fetchCategories()
+  }, [jwt])
 
   // UI STYLES - LIGHT THEME
   const pageStyle: React.CSSProperties = {
@@ -221,7 +246,7 @@ export default function Home() {
       <header style={headerStyle}>
         <div style={headerTopRowStyle}>
           {/* Brand Logo */}
-          <img src="/city_mart_logo.svg" alt="City Mart" style={logoStyle} />
+          <img src="/city_mart_logo.svg?v=5" alt="City Mart" style={logoStyle} />
 
           {/* Location Info */}
           <div 
@@ -234,15 +259,15 @@ export default function Home() {
               {/* Logic: Show "Select location" if not confirmed. Show City Name if confirmed. */}
               <span>
                 {!location?.confirmed 
-                  ? 'Select location' 
-                  : (location.label === 'Current Location' ? 'Nearby' : location.label)
+                  ? t('common.select_location')
+                  : (location.label === 'Current Location' ? t('common.nearby') : location.label)
                 }
               </span>
               <span style={{ fontSize: '10px', color: '#111827' }}>▼</span>
             </div>
             {location?.confirmed && (
                <div style={locationSubStyle}>
-                 {location.subLabel || 'Delivering here'}
+                 {location.subLabel || t('common.delivering_here')}
                </div>
             )}
           </div>
@@ -251,7 +276,7 @@ export default function Home() {
         <div style={searchContainerStyle}>
           <input
             type="text"
-            placeholder="Search for stores, items..."
+            placeholder={t('common.search_placeholder')}
             style={searchInputStyle}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
@@ -263,7 +288,7 @@ export default function Home() {
       <div style={{ padding: '0 16px', marginTop: '16px', marginBottom: '4px', display: 'flex', alignItems: 'center', gap: '6px' }}>
         <span style={{ fontSize: '18px' }}>📑</span>
         <div style={{ ...sectionTitleStyle, marginBottom: 0 }}>
-          Categories
+          {t('common.categories')}
         </div>
       </div>
 
@@ -280,19 +305,21 @@ export default function Home() {
       <div style={{ padding: '0 16px', marginTop: '16px', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '6px' }}>
         <span style={{ fontSize: '20px' }}>🛍️</span>
         <div style={{ ...sectionTitleStyle, marginBottom: 0 }}>
-          Stores Near You
+          {t('common.stores_near_you')}
         </div>
       </div>
 
       <div style={listContainerStyle}>
         {!location?.confirmed ? (
           <div style={emptyStateStyle}>
-            <div style={{ fontSize: '48px', marginBottom: '16px' }}>📍</div>
+            <div style={{ fontSize: '48px', marginBottom: '16px' }}>
+              {isDetecting ? '⌛' : '📍'}
+            </div>
             <h3 style={{ fontSize: '18px', fontWeight: 600, marginBottom: '8px', color: '#111827' }}>
-              Location needed
+              {isDetecting ? t('home.detecting_location') : t('home.location_needed')}
             </h3>
             <p style={{ maxWidth: '280px', margin: '0 auto' }}>
-              Please select your location to see stores near you.
+              {isDetecting ? t('home.detecting_desc') : t('home.location_needed_desc')}
             </p>
             <button 
               onClick={() => setShowLocationSheet(true)}
@@ -308,7 +335,7 @@ export default function Home() {
                 cursor: 'pointer'
               }}
             >
-              Select Location
+              {t('home.select_location_btn')}
             </button>
           </div>
         ) : loading ? (
@@ -330,9 +357,9 @@ export default function Home() {
           <div style={emptyStateStyle}>
             <div style={{ fontSize: '48px', marginBottom: '16px' }}>📍</div>
             <h3 style={{ fontSize: '18px', fontWeight: 600, marginBottom: '8px', color: '#111827' }}>
-              No stores available here
+              {t('home.no_stores')}
             </h3>
-            <p>Try a different location</p>
+            <p>{t('home.try_different_location')}</p>
           </div>
         )}
       </div>

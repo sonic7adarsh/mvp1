@@ -2,8 +2,11 @@ import { useEffect, useRef, useState } from 'react'
 import { sendOtp, verifyOtp } from '../api/endpoints'
 import { handleApiError } from '../api/client'
 import { useAuth } from '../AuthContext'
+import { useTranslation } from 'react-i18next'
+import { LanguageSwitcher } from '../components/LanguageSwitcher'
 
 export default function Login() {
+  const { t } = useTranslation()
   const [phone, setPhone] = useState('')
   const [otpSent, setOtpSent] = useState(false)
   const [otp, setOtp] = useState('')
@@ -15,7 +18,7 @@ export default function Login() {
 
   useEffect(() => {
     if (otpSent) {
-      setResendSeconds(30)
+      setResendSeconds(120)
       setTimeout(() => {
         otpInputRef.current?.focus()
       }, 0)
@@ -50,7 +53,7 @@ export default function Login() {
     if (loading) return
     if (!otpSent) {
       if (!canSendOtp) {
-        setError('Please enter a valid 10-digit mobile number')
+        setError(t('login.invalid_phone'))
         return
       }
       try {
@@ -67,7 +70,7 @@ export default function Login() {
     }
     // Verify & Continue
     if (!otp || otp.length === 0) {
-      setError('Please enter OTP')
+      setError(t('login.enter_otp_error'))
       return
     }
     try {
@@ -77,9 +80,11 @@ export default function Login() {
       // Support both backend shapes: { accessToken } or { token }
       const token = (res as any).accessToken || (res as any).token
       const roles = (res as any).user?.roles || ((res as any).role ? [String((res as any).role)] : undefined)
+      const userId = (res as any).user?.id || (res as any).userId || (res as any).id
+      
       // Persist and set global auth
       localStorage.setItem('customer_token', token)
-      login(token, { roles })
+      login(token, { roles, id: userId })
       
       // Check for redirect param
       const hashParts = window.location.hash.split('?')
@@ -104,7 +109,7 @@ export default function Login() {
 
   const handleResend = () => {
     if (resendSeconds > 0) return
-    setResendSeconds(30)
+    setResendSeconds(120)
     setError('')
     setOtp('')
   }
@@ -124,12 +129,14 @@ export default function Login() {
     background: '#FFFFFF',
     borderRadius: '16px',
     boxShadow: '0 8px 24px rgba(0,0,0,0.08)',
+    position: 'relative',
   }
 
   const titleStyle: React.CSSProperties = {
     fontSize: '24px',
     fontWeight: 700,
     margin: 0,
+    marginTop: '16px',
   }
 
   const taglineStyle: React.CSSProperties = {
@@ -158,7 +165,7 @@ export default function Login() {
     width: '100%',
     height: '48px',
     borderRadius: '12px',
-    background: '#00B761',
+    background: '#000000',
     color: '#FFFFFF',
     fontWeight: 600,
     border: 'none',
@@ -168,7 +175,7 @@ export default function Login() {
 
   const buttonDisabledStyle: React.CSSProperties = {
     ...buttonStyle,
-    background: '#9EE7C5',
+    background: '#333333',
     cursor: 'not-allowed',
     opacity: 0.8,
   }
@@ -178,6 +185,19 @@ export default function Login() {
     textAlign: 'center',
     fontSize: '12px',
     color: '#9CA3AF',
+  }
+
+  const skipStyle: React.CSSProperties = {
+    background: 'transparent',
+    border: 'none',
+    color: '#000000', 
+    fontSize: '14px',
+    fontWeight: 500,
+    cursor: 'pointer',
+    marginTop: '20px',
+    width: '100%',
+    textAlign: 'center',
+    display: 'block',
   }
 
   const sectionStyle: React.CSSProperties = {
@@ -214,12 +234,22 @@ export default function Login() {
   const phoneErrorActive = !otpSent && !!error
   const otpErrorActive = otpSent && !!error
 
+  const langSwitcherStyle: React.CSSProperties = {
+    position: 'absolute',
+    top: '24px',
+    right: '24px',
+    zIndex: 10,
+  }
+
   return (
     <div style={containerStyle}>
       <div style={cardStyle}>
+        <div style={langSwitcherStyle}>
+          <LanguageSwitcher />
+        </div>
         <div style={sectionStyle}>
           <h1 style={titleStyle}>BharatShop</h1>
-          <p style={taglineStyle}>Groceries from nearby stores in minutes</p>
+          <p style={taglineStyle}>{t('login.tagline')}</p>
         </div>
 
         <div style={formStyle}>
@@ -228,7 +258,7 @@ export default function Login() {
             type="tel"
             inputMode="numeric"
             pattern="[0-9]*"
-            placeholder="Enter mobile number"
+            placeholder={t('login.phone_placeholder')}
             value={phone}
             onChange={onPhoneChange}
             maxLength={10}
@@ -242,7 +272,7 @@ export default function Login() {
               style={canSendOtp && !loading ? buttonStyle : buttonDisabledStyle}
               disabled={!canSendOtp || loading}
             >
-              {loading ? 'Sending…' : 'Send OTP'}
+              {loading ? t('login.sending') : t('login.send_otp')}
             </button>
           )}
           {phoneErrorActive && !otpSent && (
@@ -256,7 +286,7 @@ export default function Login() {
                 type="tel"
                 inputMode="numeric"
                 pattern="[0-9]*"
-                placeholder="Enter OTP"
+                placeholder={t('login.otp_placeholder')}
                 value={otp}
                 onChange={onOtpChange}
                 maxLength={6}
@@ -271,7 +301,7 @@ export default function Login() {
                 style={!loading ? buttonStyle : buttonDisabledStyle}
                 disabled={loading}
               >
-                {loading ? 'Verifying…' : 'Verify & Continue'}
+                {loading ? t('login.verifying') : t('login.verify_continue')}
               </button>
               <button
                 type="button"
@@ -279,15 +309,22 @@ export default function Login() {
                 style={resendStyle}
                 disabled={resendSeconds > 0}
               >
-                {resendSeconds > 0 ? `Resend OTP in ${resendSeconds}s` : 'Resend OTP'}
+                {resendSeconds > 0 ? t('login.resend_otp_in', { seconds: resendSeconds }) : t('login.resend_otp')}
               </button>
             </>
           )}
         </div>
 
         <div style={footerStyle}>
-          By continuing, you agree to our Terms & Privacy Policy
+          {t('login.terms_agreement')}
         </div>
+
+        <button 
+          onClick={() => window.location.hash = '/home'} 
+          style={skipStyle}
+        >
+          {t('login.skip_to_home')}
+        </button>
       </div>
     </div>
   )

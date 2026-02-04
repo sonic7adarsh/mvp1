@@ -1,4 +1,4 @@
-export type ApiContext = { jwt: string; tenant: string }
+export type ApiContext = { jwt: string }
 
 export type ApiError = {
   status: number
@@ -13,13 +13,10 @@ export async function apiFetch<T>(
 ): Promise<T> {
   const SELLER_TOKEN_KEY = 'seller_token'
   const token = (typeof window !== 'undefined' ? localStorage.getItem(SELLER_TOKEN_KEY) || '' : '')
-  const tenantEnv = (import.meta as any).env?.VITE_DEFAULT_TENANT
-  const tenantHeader = tenantEnv && String(tenantEnv).length > 0 ? String(tenantEnv) : ''
 
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
   }
-  if (tenantHeader) headers['X-Tenant-Domain'] = tenantHeader
   if (token) headers.Authorization = `Bearer ${token}`
 
   const isDev = !!(import.meta as any).env?.DEV
@@ -91,7 +88,11 @@ export async function apiFetch<T>(
       try { if (typeof window !== 'undefined') localStorage.removeItem(SELLER_TOKEN_KEY) } catch {}
       if (typeof window !== 'undefined') window.location.hash = '#/login'
     }
-    const err: ApiError = { status: resp.status, message: (json && json.message) || text }
+    const err: ApiError = { 
+      status: resp.status, 
+      code: json?.code,
+      message: (json && json.message) || text 
+    }
     throw err
   }
   return json as T

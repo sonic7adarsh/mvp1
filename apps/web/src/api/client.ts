@@ -1,4 +1,4 @@
-export type ApiContext = { jwt: string; tenant: string }
+export type ApiContext = { jwt: string }
 
 export type ApiError = {
   status: number
@@ -12,26 +12,22 @@ export async function apiFetch<T>(
   _ctx: ApiContext
 ): Promise<T> {
   const CUSTOMER_TOKEN_KEY = 'customer_token'
-  const tenantEnv = (import.meta as any).env?.VITE_DEFAULT_TENANT
   const ctxToken = _ctx?.jwt ? String(_ctx.jwt) : ''
-  const ctxTenant = _ctx?.tenant ? String(_ctx.tenant) : ''
   // Do NOT fallback to localStorage; always trust context token
   const token = ctxToken.trim()
-  const tenantHeader = ctxTenant.trim().length > 0
-    ? ctxTenant.trim()
-    : (tenantEnv && String(tenantEnv).length > 0 ? String(tenantEnv) : '')
 
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
   }
-  // Always attach tenant header if available; auth only when token exists
-  if (tenantHeader) {
-    headers['X-Tenant-Domain'] = tenantHeader
-  }
+  // Auth only when token exists
   // Never attach Authorization for public endpoints
   const isAuthPath = path.startsWith('/api/auth')
   const isStorefrontPath = path.startsWith('/api/storefront')
-  if (token && !isAuthPath && !isStorefrontPath) {
+  const isStorefrontProtected = path.startsWith('/api/storefront/payments') || 
+                               path.startsWith('/api/storefront/checkout') || 
+                               path.startsWith('/api/storefront/cart')
+
+  if (token && !isAuthPath && (!isStorefrontPath || isStorefrontProtected)) {
     headers.Authorization = `Bearer ${token}`
   }
 
@@ -67,7 +63,12 @@ export async function apiFetch<T>(
   }
 
   // Enforce JWT-first for protected APIs
-  const isProtected = path.startsWith('/api/orders') || path.startsWith('/api/cart') || path.startsWith('/api/customer')
+  const isProtected = path.startsWith('/api/orders') || 
+                      path.startsWith('/api/cart') || 
+                      path.startsWith('/api/customer') ||
+                      path.startsWith('/api/storefront/payments') ||
+                      path.startsWith('/api/storefront/checkout')
+
   if (isProtected && !token) {
     // Redirect to login immediately, no error logs
     try { if (typeof window !== 'undefined') localStorage.removeItem(CUSTOMER_TOKEN_KEY) } catch {}
@@ -100,7 +101,13 @@ export async function apiFetch<T>(
   // Global auth expiry handling: intercept 401/403 on protected endpoints
   if (isProtected && (resp.status === 401 || resp.status === 403)) {
     // CEO-level guard: only logout on auth-critical flows
-    const isAuthEndpoint = path.startsWith('/api/auth') || path === '/api/orders' || path === '/api/cart'
+    const isAuthEndpoint = path.startsWith('/api/auth') || 
+                          path.startsWith('/api/orders') || 
+                          path.startsWith('/api/cart') ||
+                          path.startsWith('/api/storefront/payments') ||
+                          path.startsWith('/api/storefront/checkout') ||
+                          path.startsWith('/api/storefront/cart')
+                          
     if (isAuthEndpoint) {
       try { if (typeof window !== 'undefined') localStorage.removeItem(CUSTOMER_TOKEN_KEY) } catch {}
       if (typeof window !== 'undefined') {

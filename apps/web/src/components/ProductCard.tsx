@@ -1,5 +1,6 @@
 import React from 'react'
 import { useCart } from '../CartContext'
+import { useTranslation } from 'react-i18next'
 
 export type ProductCardProps = {
   product: {
@@ -8,12 +9,15 @@ export type ProductCardProps = {
     price: number
     image?: string
     unit: string
+    storeId?: string
   }
   onClick?: () => void
+  onConflict?: (product: any) => void
 }
 
-export function ProductCard({ product, onClick }: ProductCardProps) {
-  const { addItem, getQuantity, increment, decrement } = useCart()
+export function ProductCard({ product, onClick, onConflict }: ProductCardProps) {
+  const { t } = useTranslation()
+  const { addItem, getQuantity, increment, decrement, items } = useCart()
   const qty = getQuantity(product.id)
 
   const cardStyle: React.CSSProperties = {
@@ -164,7 +168,7 @@ export function ProductCard({ product, onClick }: ProductCardProps) {
           <div style={unitStyle}>/ {product.unit}</div>
         </div>
         {qty === 0 ? (
-          <button style={addBtnStyle} onClick={handleAdd}>ADD</button>
+          <button style={addBtnStyle} onClick={handleAdd}>{t('store.add_btn')}</button>
         ) : (
           <div style={qtyControlStyle}>
             <button style={qtyBtnStyle} onClick={handleDecrement}>-</button>

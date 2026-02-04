@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useCart } from '../CartContext'
 import { useAuth } from '../AuthContext'
 import { getProductsByCategory } from '../api/endpoints'
@@ -8,10 +9,10 @@ import { ProductCard } from '../components/ProductCard'
 import { useLocation } from '../context/LocationContext'
 
 export default function CategoryProducts() {
+  const { t } = useTranslation()
   const { jwt } = useAuth()
   const { location } = useLocation()
   const { clearCart, addItem } = useCart()
-  const tenant = (import.meta as any).env?.VITE_DEFAULT_TENANT || 'tenantA'
   
   const [products, setProducts] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
@@ -42,16 +43,10 @@ export default function CategoryProducts() {
 
   useEffect(() => {
     async function load() {
-      if (!categoryId) return
-        
-      if (!location?.confirmed) return
-
       try {
         setLoading(true)
-        setError('')
-        const { lat, lng } = location
-        const res = await getProductsByCategory(categoryId, lat, lng, { jwt, tenant })
-        
+        // Removed real lat/lng
+        const res = await getProductsByCategory(categoryId, 0, 0, { jwt })
         const normalized = (res || []).map((p: any) => ({
           id: String(p.id),
           name: p.name || 'Product',
@@ -62,14 +57,14 @@ export default function CategoryProducts() {
         }))
         setProducts(normalized)
       } catch (e) {
-        setError('Something went wrong. Please try again.')
+        setError(t('category.error'))
       } finally {
         setLoading(false)
       }
     }
     load()
     track('category_viewed', { categoryId })
-  }, [categoryId, jwt, tenant, location])
+  }, [categoryId, jwt, location])
 
   const handleConflict = (product: any) => {
     setPendingItem(product)
@@ -94,7 +89,7 @@ export default function CategoryProducts() {
 
   // Safety Gate UI
   if (!location?.confirmed) {
-     return <div style={{ padding: 20 }}>Redirecting to location selection...</div>
+     return <div style={{ padding: 20 }}>{t('category.redirect_location')}</div>
   }
 
   const pageStyle: React.CSSProperties = {
@@ -168,22 +163,22 @@ export default function CategoryProducts() {
           display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16
         }}>
           <div style={{ background: '#FFF', borderRadius: 12, padding: 24, width: '100%', maxWidth: 320 }}>
-            <h3 style={{ fontSize: 18, fontWeight: 700, marginBottom: 8 }}>Start a new cart?</h3>
+            <h3 style={{ fontSize: 18, fontWeight: 700, marginBottom: 8 }}>{t('store.conflict_title')}</h3>
             <p style={{ fontSize: 14, color: '#666', marginBottom: 20 }}>
-              Your cart has items from another store. Do you want to discard them and add items from this store?
+              {t('store.conflict_desc')}
             </p>
             <div style={{ display: 'flex', gap: 12 }}>
               <button
                 onClick={() => setShowConflictModal(false)}
                 style={{ flex: 1, padding: '10px', borderRadius: 8, border: '1px solid #E5E7EB', background: '#FFF', fontWeight: 600 }}
               >
-                No
+                {t('common.no')}
               </button>
               <button
                 onClick={confirmChangeStore}
                 style={{ flex: 1, padding: '10px', borderRadius: 8, background: '#111827', color: '#FFF', fontWeight: 600, border: 'none' }}
               >
-                Yes, Start New
+                {t('store.conflict_yes_start_new')}
               </button>
             </div>
           </div>

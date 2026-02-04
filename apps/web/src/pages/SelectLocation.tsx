@@ -9,13 +9,7 @@ export default function SelectLocation() {
     e.preventDefault()
     if (!manualQuery.trim()) return
 
-    // MVP-1 Truth: Fixed Zone mapping
-    const FIXED_ZONE_LAT = 28.5355 // Example: Noida Sector 18
-    const FIXED_ZONE_LNG = 77.3910
-
     setLocation({
-      lat: FIXED_ZONE_LAT,
-      lng: FIXED_ZONE_LNG,
       label: manualQuery,
       source: 'MANUAL',
       confirmed: true
@@ -66,18 +60,18 @@ export default function SelectLocation() {
 
   return (
     <div style={pageStyle}>
-      <div style={headerStyle}>Enter Location Manually</div>
+      <div style={headerStyle}>{t('select_location.title')}</div>
       
       <form onSubmit={handleManualSubmit}>
         <input 
           style={inputStyle}
-          placeholder="Search area, street, or landmark..."
+          placeholder={t('select_location.placeholder')}
           value={manualQuery}
           onChange={(e) => setManualQuery(e.target.value)}
           autoFocus
         />
         <button type="submit" style={buttonStyle}>
-          Confirm Location
+          {t('select_location.confirm')}
         </button>
       </form>
       
@@ -85,7 +79,7 @@ export default function SelectLocation() {
         style={{ marginTop: '20px', textAlign: 'center', color: '#666', cursor: 'pointer' }}
         onClick={() => window.location.hash = '/home'}
       >
-        Cancel
+        {t('select_location.cancel')}
       </div>
     </div>
   )

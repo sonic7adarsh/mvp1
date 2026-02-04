@@ -14,8 +14,39 @@ export async function getCustomerOrders(_ctx: ApiContext) {
   }
 }
 
+// User Profile & Addresses
+export async function getUserProfile() {
+  const res = await privateApi.get('/api/user/profile')
+  return res.data
+}
+
+export async function updateUserProfile(data: { name?: string; alternatePhone?: string }) {
+  const res = await privateApi.put('/api/user/profile', data)
+  return res.data
+}
+
+export async function getUserAddresses() {
+  const res = await privateApi.get('/api/user/addresses')
+  return res.data
+}
+
+export async function addUserAddress(data: any) {
+  const res = await privateApi.post('/api/user/addresses', data)
+  return res.data
+}
+
+export async function updateUserAddress(id: string, data: any) {
+  const res = await privateApi.put(`/api/user/addresses/${id}`, data)
+  return res.data
+}
+
+export async function deleteUserAddress(id: string) {
+  const res = await privateApi.delete(`/api/user/addresses/${id}`)
+  return res.data
+}
+
 // Global Discovery
-export function searchGlobal(query: string, lat: number, lng: number, ctx: ApiContext) {
+export function searchGlobal(query: string, lat: number = 0, lng: number = 0, ctx: ApiContext) {
   const qs = new URLSearchParams()
   qs.set('q', query)
   qs.set('lat', String(lat))
@@ -23,18 +54,18 @@ export function searchGlobal(query: string, lat: number, lng: number, ctx: ApiCo
   return apiFetch<any>(`/api/search?${qs.toString()}`, { method: 'GET' }, ctx)
 }
 
-export function getGlobalCategories(lat?: number, lng?: number, ctx?: ApiContext) {
+export function getGlobalCategories(lat: number = 0, lng: number = 0, ctx?: ApiContext) {
   const qs = new URLSearchParams()
   if (lat !== undefined) qs.set('lat', String(lat))
   if (lng !== undefined) qs.set('lng', String(lng))
   
   // Safe context fallback
-  const safeCtx = ctx || { jwt: '', tenant: '' }
+  const safeCtx = ctx || { jwt: '' }
   
   return apiFetch<any[]>(`/api/categories/global?${qs.toString()}`, { method: 'GET' }, safeCtx)
 }
 
-export function getProductsByCategory(categoryId: string, lat: number, lng: number, ctx: ApiContext) {
+export function getProductsByCategory(categoryId: string, lat: number = 0, lng: number = 0, ctx: ApiContext) {
   const qs = new URLSearchParams()
   qs.set('categoryId', categoryId)
   qs.set('lat', String(lat))
@@ -54,8 +85,33 @@ export function getCart(ctx: ApiContext) {
   return apiFetch<any>('/api/storefront/cart', { method: 'GET' }, ctx)
 }
 
-export function checkout(ctx: ApiContext) {
-  return apiFetch<any>('/api/storefront/checkout', { method: 'POST' }, ctx)
+export function initiatePayment(amount: number, currency: string = 'INR', method: string = 'upi', ctx: ApiContext) {
+  return privateApi
+    .post('/api/storefront/payments/initiate', { amount, currency, method })
+    .then((res) => res.data)
+    .catch((err) => {
+      logPrivateAxiosError(err, 'initiate-payment')
+      throw err
+    })
+}
+
+export function verifyPayment(payload: { razorpay_order_id: string; razorpay_payment_id: string; razorpay_signature: string }, ctx: ApiContext) {
+  return privateApi
+    .post('/api/storefront/payments/verify', payload)
+    .then((res) => res.data)
+    .catch((err) => {
+      logPrivateAxiosError(err, 'verify-payment')
+      throw err
+    })
+}
+
+export function checkout(payload: any, ctx: ApiContext) {
+  return privateApi.post('/api/storefront/checkout', payload)
+    .then(res => res.data)
+    .catch(err => {
+      logPrivateAxiosError(err, 'checkout')
+      throw err
+    })
 }
 
 // Seller
@@ -182,12 +238,11 @@ export function deleteZone(id: string, ctx: ApiContext) {
 export function loginUser(data: { identifier: string; otpOrPassword: string }) {
   // Use configurable login path; default to /api/auth/login
   const path = (import.meta as any).env?.VITE_LOGIN_PATH || '/api/auth/login'
-  // Send without JWT; tenant may be provided via config
-  const tenant = (import.meta as any).env?.VITE_DEFAULT_TENANT || ''
-  return apiFetch<{ jwt: string; tenant?: string; roles?: string[] }>(
+  // Send without JWT
+  return apiFetch<{ jwt: string; roles?: string[] }>(
     path,
     { method: 'POST', body: JSON.stringify(data) },
-    { jwt: '', tenant }
+    { jwt: '' }
   )
 }
 
@@ -221,7 +276,7 @@ export function switchRole(nextRole: string, ctx: ApiContext) {
 
 // Stores and availability
 export function getServiceability(
-  params: { storeId: string; lat: number; lng: number; tenantId?: string },
+  params: { storeId: string; lat: number; lng: number },
   ctx: ApiContext
 ) {
   const qs = new URLSearchParams()
@@ -231,7 +286,7 @@ export function getServiceability(
   return apiFetch<any>(`/api/storefront/serviceability?${qs.toString()}`, { method: 'GET' }, ctx)
 }
 
-export function getStores(lat: number, lng: number, ctx: ApiContext) {
+export function getStores(lat: number = 0, lng: number = 0, ctx: ApiContext) {
   const qs = new URLSearchParams()
   qs.set('lat', String(lat))
   qs.set('lng', String(lng))

@@ -1,12 +1,15 @@
 import React, { createContext, useContext, useEffect, useState } from 'react'
 import { publicApi } from '../api/publicApi'
 
+import { getGoogleAddress } from '../utils/locationHelpers'
+import { loadGoogleMaps } from '../utils/googleMapsLoader'
+
 export type LocationState = {
-  lat: number | null
-  lng: number | null
   label: string
-  subLabel?: string // Additional details (e.g. City, State, or Full Address)
-  source: "MANUAL" | "GPS" | "fallback" | "ip-fallback"
+  subLabel?: string
+  lat?: number
+  lng?: number
+  source: "MANUAL" | "GPS" | "fallback"
   confirmed: boolean
 }
 
@@ -15,6 +18,7 @@ type LocationContextType = {
   setLocation: (loc: LocationState) => void
   requestCurrentLocation: () => Promise<void>
   clearLocation: () => void
+  isDetecting: boolean
 }
 
 const LocationContext = createContext<LocationContextType | undefined>(undefined)
@@ -23,19 +27,43 @@ const LOCAL_STORAGE_KEY = 'customer_location'
 
 export function LocationProvider({ children }: { children: React.ReactNode }) {
   const [location, setLocationState] = useState<LocationState | null>(null)
+  const [isDetecting, setIsDetecting] = useState(false)
 
+  // Debug Log to verify new code is loaded
   useEffect(() => {
-    try {
-      const stored = window.localStorage.getItem(LOCAL_STORAGE_KEY)
-      if (stored) {
-        const parsed = JSON.parse(stored)
-        if (parsed && typeof parsed.lat === 'number' && typeof parsed.lng === 'number' && parsed.confirmed) {
-           setLocationState(parsed)
-        }
-      }
-    } catch (e) {
-      console.error('Failed to parse stored location', e)
+    console.error('!!! LOCATION CONTEXT LOADED !!!')
+    loadGoogleMaps().then(() => console.error('Google Maps Script Loaded')).catch(e => console.error('Script Load Error', e))
+
+    const apiKey = (import.meta as any).env.VITE_GOOGLE_MAPS_API_KEY
+    if (apiKey) {
+      console.error('GOOGLE MAPS API KEY FOUND:', apiKey.substring(0, 10) + '...')
+    } else {
+      console.error('GOOGLE MAPS API KEY MISSING')
     }
+  }, [])
+
+  // Restore from Local Storage OR Auto-Detect
+  useEffect(() => {
+    const initLocation = async () => {
+      try {
+        const stored = window.localStorage.getItem(LOCAL_STORAGE_KEY)
+        if (stored) {
+          const parsed = JSON.parse(stored)
+          if (parsed && parsed.confirmed) {
+             setLocationState(parsed)
+             return
+          }
+        }
+        
+        // If no stored location, Auto-Detect
+        console.error('No stored location, attempting auto-detect...')
+        await requestCurrentLocation()
+      } catch (e) {
+        console.error('Initialization error', e)
+      }
+    }
+
+    initLocation()
   }, [])
 
   const setLocation = (loc: LocationState) => {
@@ -47,57 +75,72 @@ export function LocationProvider({ children }: { children: React.ReactNode }) {
     }
   }
 
-  // Task 1: Strict User-Initiated GPS
   const requestCurrentLocation = async (): Promise<void> => {
-    return new Promise<void>((resolve, reject) => {
-      if (!navigator.geolocation) {
-        reject(new Error('Geolocation not supported'))
-        return
-      }
+    if (!navigator.geolocation) {
+      throw new Error('Geolocation is not supported by your browser')
+    }
 
+    setIsDetecting(true)
+
+    return new Promise((resolve, reject) => {
       navigator.geolocation.getCurrentPosition(
-        async (pos) => {
-          const lat = pos.coords.latitude
-          const lng = pos.coords.longitude
-
+        async (position) => {
           try {
-            // 🔥 BACKEND CALL (NOT NOMINATIM)
-            const res = await publicApi.get(
-              '/api/location/reverse',
-              { params: { lat, lng } }
-            )
+            const { latitude, longitude } = position.coords
             
-            const data = res.data
-
-            // Format: "Sector 62, Noida" or fallback
-            const label = (data.locality && data.city)
-              ? `${data.locality}, ${data.city}`
-              : (data.city || data.locality || 'Current Location')
-
+            // PRIORITY: Google Maps (if Key exists)
+            const googleData = await getGoogleAddress(latitude, longitude)
+            if (googleData) {
+               setLocation({
+                 label: googleData.label,
+                 subLabel: googleData.subLabel,
+                 lat: latitude,
+                 lng: longitude,
+                 source: 'GPS',
+                 confirmed: true
+               })
+               setIsDetecting(false)
+               resolve()
+               return
+            } else {
+               // Fallback if Google fails (e.g. Quota exceeded or Network error)
+               // Simple fallback to lat/lng text
+               setLocation({
+                 label: `${latitude.toFixed(4)}, ${longitude.toFixed(4)}`,
+                 subLabel: 'Unknown Location',
+                 lat: latitude,
+                 lng: longitude,
+                 source: 'GPS',
+                 confirmed: true
+               })
+               setIsDetecting(false)
+               resolve()
+            }
+          } catch (error) {
+            console.error('Reverse geocoding failed', error)
+            // Fallback if geocoding fails but we have coords
             setLocation({
-              lat,
-              lng,
-              label, 
+              label: 'Current Location',
+              subLabel: `${position.coords.latitude.toFixed(4)}, ${position.coords.longitude.toFixed(4)}`,
+              lat: position.coords.latitude,
+              lng: position.coords.longitude,
               source: 'GPS',
               confirmed: true
             })
-
-            resolve()
-          } catch (err) {
-            console.error('Location reverse lookup failed', err)
-            // Fallback to coordinates only if backend fails
-            setLocation({
-              lat,
-              lng,
-              label: `${lat.toFixed(4)}, ${lng.toFixed(4)}`,
-              source: 'GPS',
-              confirmed: true
-            })
+            setIsDetecting(false)
             resolve()
           }
         },
-        (err) => reject(err),
-        { enableHighAccuracy: true }
+        (error) => {
+          console.error('Geolocation Error:', error)
+          setIsDetecting(false)
+          reject(error)
+        },
+        {
+          enableHighAccuracy: true,
+          timeout: 20000,
+          maximumAge: 0
+        }
       )
     })
   }
@@ -108,7 +151,7 @@ export function LocationProvider({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <LocationContext.Provider value={{ location, setLocation, requestCurrentLocation, clearLocation }}>
+    <LocationContext.Provider value={{ location, setLocation, requestCurrentLocation, clearLocation, isDetecting }}>
       {children}
     </LocationContext.Provider>
   )

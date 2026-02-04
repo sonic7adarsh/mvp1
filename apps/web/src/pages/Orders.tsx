@@ -1,8 +1,10 @@
 import { useEffect, useState, useRef } from 'react'
 import { useAuth } from '../AuthContext'
+import { useTranslation } from 'react-i18next'
 import { apiFetch } from '../api/client'
 import { privateApi } from '../api/privateApi'
 import { track } from '../utils/track'
+import { useLocation } from '../context/LocationContext'
 
 // Shared UI helpers for status pill, label, and created time
 function pillStyle(status: string): React.CSSProperties {
@@ -25,46 +27,65 @@ function pillStyle(status: string): React.CSSProperties {
   }
 }
 
-function statusLabel(status: string) {
+function statusLabel(status: string, t: any) {
+  if (typeof t !== 'function') return String(status || '')
   const s = String(status || '').toUpperCase()
   switch (s) {
     case 'PLACED':
-      return 'Placed'
+      return t('status.placed')
     case 'READY':
-      return 'Ready for pickup'
+      return t('status.ready')
     case 'DELIVERED':
-      return 'Delivered'
+      return t('status.delivered')
     case 'CANCELLED':
-      return 'Cancelled'
+      return t('status.cancelled')
+    case 'ACCEPTED':
+      return t('status.accepted')
+    case 'PREPARING':
+      return t('status.preparing')
+    case 'OUT_FOR_DELIVERY':
+      return t('status.out_for_delivery')
     default:
       return String(status || '')
   }
 }
 
-function helperLabel(status: string) {
+function helperLabel(status: string, t: any) {
+  if (typeof t !== 'function') return ''
   const s = String(status || '').toUpperCase()
   switch (s) {
     case 'PLACED':
-      return 'Waiting for store'
+      return t('status_helper.placed')
     case 'ACCEPTED':
-      return 'Being prepared'
+      return t('status_helper.preparing')
     case 'PREPARING':
-      return 'Being prepared'
+      return t('status_helper.preparing')
     case 'READY':
-      return 'On the way'
+      return t('status_helper.on_the_way')
+    case 'OUT_FOR_DELIVERY':
+      return t('status_helper.on_the_way')
     case 'DELIVERED':
-      return 'Delivered'
+      return t('status.delivered')
     case 'CANCELLED':
-      return 'Cancelled'
+      return t('status.cancelled')
     default:
       return ''
   }
 }
 
-function formatCreated(iso?: string) {
+function formatCreated(iso: string | undefined, t: any) {
   if (!iso) return ''
   const d = new Date(iso)
   if (isNaN(d.getTime())) return ''
+  
+  // Guard for t function
+  if (typeof t !== 'function') {
+    const day = d.getDate()
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+    const mon = months[d.getMonth()] || ''
+    return `${day} ${mon}`
+  }
+
   const now = new Date()
   const isSameDay = (a: Date, b: Date) =>
     a.getFullYear() === b.getFullYear() &&
@@ -72,8 +93,8 @@ function formatCreated(iso?: string) {
     a.getDate() === b.getDate()
   const y = new Date(now)
   y.setDate(now.getDate() - 1)
-  if (isSameDay(d, now)) return 'Today'
-  if (isSameDay(d, y)) return 'Yesterday'
+  if (isSameDay(d, now)) return t('date.today')
+  if (isSameDay(d, y)) return t('date.yesterday')
   const day = d.getDate()
   const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
   const mon = months[d.getMonth()] || ''
@@ -87,8 +108,9 @@ const normalizeStatus = (status?: string) => {
 }
 
 export default function Orders() {
+  const { t } = useTranslation()
   const { jwt } = useAuth()
-  const tenant = (import.meta as any).env?.VITE_DEFAULT_TENANT || 'tenantA'
+  const { location } = useLocation()
   // Keep hash in React state so UI re-renders on hash changes
   const [hash, setHash] = useState(
     typeof window !== 'undefined' ? window.location.hash : ''
@@ -121,11 +143,14 @@ export default function Orders() {
 
   const fetchOrders = async () => {
     if (!jwt) return
-    const ctx = { jwt, tenant }
     try {
       setLoading(true)
+      const q = new URLSearchParams()
+      if (location?.lat) q.append('lat', String(location.lat))
+      if (location?.lng) q.append('lng', String(location.lng))
+
       const data = await privateApi
-        .get('/api/customer/orders')
+        .get(`/api/customer/orders?${q.toString()}`)
         .then((res) => res.data as any[])
       console.log('[Orders] Orders from backend:', data)
       setOrders(Array.isArray(data) ? data : [])
@@ -143,7 +168,7 @@ export default function Orders() {
     fetchOrders()
   }, [])
 
-  // Do not refetch on hash changes; rely on initial mount fetch unless jwt/tenant changes
+  // Do not refetch on hash changes; rely on initial mount fetch unless jwt changes
 
   // Do not fetch single order detail; read from already fetched orders list
   // Selected order resolution (robust string compare to avoid type mismatch)
@@ -165,10 +190,14 @@ export default function Orders() {
       return
     }
     // Fetch single order detail to ensure DevTools shows GET /api/customer/orders/{id}
-    const tenant = (import.meta as any).env?.VITE_DEFAULT_TENANT || ''
     setDetailLoading(true)
+    
+    const q = new URLSearchParams()
+    if (location?.lat) q.append('lat', String(location.lat))
+    if (location?.lng) q.append('lng', String(location.lng))
+
     privateApi
-      .get(`/api/customer/orders/${encodeURIComponent(String(selectedOrderId))}`)
+      .get(`/api/customer/orders/${encodeURIComponent(String(selectedOrderId))}?${q.toString()}`)
       .then((res) => res.data as any)
       .then((fresh) => {
         if (fresh && typeof fresh === 'object') {
@@ -214,20 +243,20 @@ export default function Orders() {
   if (selectedOrderId && detailLoading) {
     return (
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100dvh', background: '#FFFFFF' }}>
-        <span style={{ fontSize: 14, color: '#777' }}>Loading order…</span>
+        <span style={{ fontSize: 14, color: '#777' }}>{t('orders.loading')}</span>
       </div>
     )
   }
   if (selectedOrderId && detailNotFound) {
     return (
       <div style={{ padding: 16 }}>
-        <div style={{ fontSize: 16, fontWeight: 600, color: '#111' }}>Order not found</div>
-        <div style={{ fontSize: 13, color: '#777', marginTop: 6 }}>This order may no longer exist or is not accessible.</div>
+        <div style={{ fontSize: 16, fontWeight: 600, color: '#111' }}>{t('orders.not_found')}</div>
+        <div style={{ fontSize: 13, color: '#777', marginTop: 6 }}>{t('orders.not_found_desc')}</div>
         <button
           onClick={() => (window.location.hash = '#/orders')}
           style={{ marginTop: 20, height: 44, width: '100%', borderRadius: 10, border: '1px solid #ddd', background: '#fff', fontWeight: 600 }}
         >
-          Back to Orders
+          {t('orders.back_to_orders')}
         </button>
       </div>
     )
@@ -237,6 +266,7 @@ export default function Orders() {
 }
 
 function OrdersList({ orders, loading }: { orders: any[]; loading: boolean }) {
+  const { t } = useTranslation()
   const containerStyle: React.CSSProperties = {
     display: 'flex',
     flexDirection: 'column',
@@ -259,7 +289,7 @@ function OrdersList({ orders, loading }: { orders: any[]; loading: boolean }) {
     overflowY: 'auto',
     WebkitOverflowScrolling: 'touch',
     padding: 16,
-    paddingBottom: 72,
+    paddingBottom: 100, // Increased for footer visibility
   }
   const cardStyle: React.CSSProperties = {
     background: '#FFFFFF',
@@ -282,7 +312,7 @@ function OrdersList({ orders, loading }: { orders: any[]; loading: boolean }) {
   return (
     <div style={containerStyle}>
       <header style={headerStyle}>
-        <h1 style={{ fontSize: 16, fontWeight: 700 }}>My Orders</h1>
+        <h1 style={{ fontSize: 16, fontWeight: 700 }}>{t('orders.title')}</h1>
       </header>
       <main style={mainStyle}>
         {/* Skeletons while loading */}
@@ -308,7 +338,7 @@ function OrdersList({ orders, loading }: { orders: any[]; loading: boolean }) {
         {/* Empty state after fetch with empty array */}
         {!loading && orders.length === 0 ? (
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
-            <span style={{ fontSize: 14, color: '#777' }}>You haven’t placed any orders yet</span>
+            <span style={{ fontSize: 14, color: '#777' }}>{t('orders.empty_list')}</span>
           </div>
         ) : (
           orders.map((o: any) => (
@@ -324,7 +354,7 @@ function OrdersList({ orders, loading }: { orders: any[]; loading: boolean }) {
               <div>
                 <div style={storeStyle}>{o?.store?.name || ''}</div>
                 <div style={metaStyle}>
-                  <span>{`${Array.isArray(o.items) ? o.items.length : 0} items`}</span>
+                  <span>{t('orders.items_count', { count: Array.isArray(o.items) ? o.items.length : 0 })}</span>
                   <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
                     <span style={pillStyle(String(o.status))}>{statusLabel(String(o.status))}</span>
                     {helperLabel(String(o.status)) && (
@@ -346,6 +376,7 @@ function OrdersList({ orders, loading }: { orders: any[]; loading: boolean }) {
 }
 
 function OrderDetail({ order, onBack }: { order: any; onBack: () => void }) {
+  const { t } = useTranslation()
   const { jwt } = useAuth()
   const containerStyle: React.CSSProperties = {
     display: 'flex',
@@ -368,7 +399,7 @@ function OrderDetail({ order, onBack }: { order: any; onBack: () => void }) {
     flex: 1,
     overflowY: 'auto',
     padding: 16,
-    paddingBottom: 72,
+    paddingBottom: 100, // Increased for footer visibility
   }
   const trackerWrapStyle: React.CSSProperties = { padding: '8px 0 12px 0' }
   const stepRowStyle: React.CSSProperties = { display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, color: '#111' }
@@ -408,6 +439,27 @@ function OrderDetail({ order, onBack }: { order: any; onBack: () => void }) {
   const didAutoSync = useRef(false)
   const [canceling, setCanceling] = useState(false)
   const [cancelError, setCancelError] = useState('')
+  // Timer state for 10s cancel window
+  const [canCancel, setCanCancel] = useState(false)
+
+  useEffect(() => {
+    if (!localOrder?.createdAt) {
+      setCanCancel(false)
+      return
+    }
+    const created = new Date(localOrder.createdAt).getTime()
+    const expiry = created + 10000 // 10 seconds
+    const update = () => {
+      const remaining = expiry - Date.now()
+      setCanCancel(remaining > 0)
+    }
+    
+    update() // Initial check
+    
+    // Poll frequently to ensure UI updates exactly when time expires
+    const interval = setInterval(update, 500)
+    return () => clearInterval(interval)
+  }, [localOrder?.createdAt])
   const [, setRefreshing] = useState(false)
   const [refreshError, setRefreshError] = useState('')
   const [isSyncing, setIsSyncing] = useState(false)
@@ -420,12 +472,9 @@ function OrderDetail({ order, onBack }: { order: any; onBack: () => void }) {
       return
     }
     didAutoSync.current = true
-    const tenantEnv = (import.meta as any).env?.VITE_DEFAULT_TENANT
-    const tenant = String(tenantEnv || '')
     const token = jwt
-    const ctx = { jwt: token, tenant }
     setIsSyncing(true)
-    console.log('[OrderDetail] Auto refresh start', { orderId: String(order.id || ''), tenant, hasToken: Boolean(token) })
+    console.log('[OrderDetail] Auto refresh start', { orderId: String(order.id || ''), hasToken: Boolean(token) })
     privateApi
       .get(`/api/customer/orders/${encodeURIComponent(String(order.id))}`)
       .then((res) => res.data as any)
@@ -450,13 +499,13 @@ function OrderDetail({ order, onBack }: { order: any; onBack: () => void }) {
   if (!order) {
     return (
       <div style={{ padding: 16 }}>
-        <div style={{ fontSize: 16, fontWeight: 600, color: '#111' }}>Order not found</div>
-        <div style={{ fontSize: 13, color: '#777', marginTop: 6 }}>This order may no longer exist or is not accessible.</div>
+        <div style={{ fontSize: 16, fontWeight: 600, color: '#111' }}>{t('orders.not_found')}</div>
+        <div style={{ fontSize: 13, color: '#777', marginTop: 6 }}>{t('orders.not_found_desc')}</div>
         <button
           onClick={() => (window.location.hash = '#/orders')}
           style={{ marginTop: 20, height: 44, width: '100%', borderRadius: 10, border: '1px solid #ddd', background: '#fff', fontWeight: 600 }}
         >
-          Back to Orders
+          {t('orders.back_to_orders')}
         </button>
       </div>
     )
@@ -480,14 +529,14 @@ function OrderDetail({ order, onBack }: { order: any; onBack: () => void }) {
           >
             ←
           </span>
-          <h1 style={{ fontSize: 16, fontWeight: 700 }}>Order Details</h1>
+          <h1 style={{ fontSize: 16, fontWeight: 700 }}>{t('orders.detail_title')}</h1>
         </div>
       </header>
       <main className="no-scrollbar" style={mainStyle}>
         {/* Progress tracker: text-only, vertical */}
         {(() => {
           const s = normalizeStatus(localOrder?.status)
-          const steps = ['Placed', 'Store accepted', 'Out for delivery', 'Delivered']
+          const steps = [t('status.placed'), t('status.accepted'), t('status.out_for_delivery'), t('status.delivered')]
           let current = 0
           if (s === 'PLACED') current = 0
           else if (s === 'ACCEPTED' || s === 'PREPARING') current = 1
@@ -508,18 +557,18 @@ function OrderDetail({ order, onBack }: { order: any; onBack: () => void }) {
               })}
               {(() => {
                 const statusHelperCopy: Record<string, string> = {
-                  PLACED: 'Waiting for the store to accept your order',
-                  ACCEPTED: 'The store is preparing your order',
-                  PREPARING: 'The store is preparing your order',
-                  READY: 'Your order is on the way',
-                  OUT_FOR_DELIVERY: 'Your order is on the way',
-                  DELIVERED: 'Order delivered successfully',
-                  CANCELLED: 'This order was cancelled',
+                  PLACED: t('status_msg.placed'),
+                  ACCEPTED: t('status_msg.preparing'),
+                  PREPARING: t('status_msg.preparing'),
+                  READY: t('status_msg.on_the_way'),
+                  OUT_FOR_DELIVERY: t('status_msg.on_the_way'),
+                  DELIVERED: t('status_msg.delivered'),
+                  CANCELLED: t('status_msg.cancelled'),
                 }
                 const copy = statusHelperCopy[normalizeStatus(localOrder?.status)] || ''
                 return copy ? <div style={helperTextStyle}>{copy}</div> : null
               })()}
-              <div style={reassuranceStyle}>You’ll be notified when the order status changes.</div>
+              <div style={reassuranceStyle}>{t('orders.notification_hint')}</div>
 
               {/* Refresh status button: visible when not DELIVERED or CANCELLED */}
               {(() => {
@@ -540,10 +589,8 @@ function OrderDetail({ order, onBack }: { order: any; onBack: () => void }) {
                         setRefreshing(true)
                         setIsSyncing(true)
                         try {
-                          const tenantEnv = (import.meta as any).env?.VITE_DEFAULT_TENANT
-                          const tenant = String(tenantEnv || '')
                           const token = jwt
-                          console.log('[OrderDetail] GET /api/customer/orders/:id start', { tenant, hasToken: Boolean(token) })
+                          console.log('[OrderDetail] GET /api/customer/orders/:id start', { hasToken: Boolean(token) })
                           const refreshed = await privateApi
                             .get(`/api/customer/orders/${encodeURIComponent(String(localOrder?.id))}`)
                             .then((res) => res.data as any)
@@ -557,10 +604,10 @@ function OrderDetail({ order, onBack }: { order: any; onBack: () => void }) {
                           console.error('[OrderDetail] GET /api/customer/orders/:id error', e)
                           const status = (e && typeof e.status === 'number') ? e.status : 0
                           if (status === 404) {
-                            setRefreshError('Order not found')
+                            setRefreshError(t('orders.not_found'))
                           } else if (status !== 401 && status !== 403) {
                             console.error('[OrderDetail] refresh error', e)
-                            setRefreshError('Failed to refresh')
+                            setRefreshError(t('orders.refresh_error_generic'))
                           }
                           // 401/403 are handled by api client; still clear local loaders
                         } finally {
@@ -570,14 +617,14 @@ function OrderDetail({ order, onBack }: { order: any; onBack: () => void }) {
                         }
                       }}
                     >
-                      Refresh status
+                      {t('orders.refresh_status')}
                     </button>
                   </div>
                 )
               })()}
 
-              {/* Cancel button and error: visible only when PLACED */}
-              {normalizeStatus(localOrder?.status) === 'PLACED' && (
+              {/* Cancel button and error: visible only when PLACED and within 10s */}
+              {normalizeStatus(localOrder?.status) === 'PLACED' && canCancel && (
                 <div>
                   {cancelError && <div style={cancelErrorStyle}>{cancelError}</div>}
                   <button
@@ -591,28 +638,22 @@ function OrderDetail({ order, onBack }: { order: any; onBack: () => void }) {
                       setCanceling(true)
                       setIsSyncing(true)
                       try {
-                        const tenantEnv = (import.meta as any).env?.VITE_DEFAULT_TENANT
-                        const tenant = String(tenantEnv || '')
-                        const token = jwt
-                        const ctx = { jwt: token, tenant }
-                        console.log('[OrderDetail] POST /api/customer/orders/:id/cancel start', { tenant, hasToken: Boolean(token) })
-                        await apiFetch<void>(
-                          `/api/customer/orders/${encodeURIComponent(String(localOrder?.id))}/cancel`,
-                          { method: 'POST', body: JSON.stringify({}) },
-                          ctx as any
-                        )
+                        console.log('[OrderDetail] POST /api/customer/orders/:id/cancel start')
+                        
+                        await privateApi.post(`/api/customer/orders/${encodeURIComponent(String(localOrder?.id))}/cancel`, {})
+                        
                         console.log('[OrderDetail] Cancel success')
                         // Success → update local state to CANCELLED
                         setLocalOrder((prev: any) => ({ ...prev, status: 'CANCELLED' }))
                         try { track('order_cancelled', { orderId: String(localOrder?.id || '') }) } catch {}
                       } catch (e: any) {
                         console.error('[OrderDetail] Cancel error', e)
-                        const status = (e && typeof e.status === 'number') ? e.status : 0
+                        const status = e?.response?.status || (e && typeof e.status === 'number' ? e.status : 0)
                         if (status === 400 || status === 409) {
-                          setCancelError('Unable to cancel this order. It may already be accepted.')
+                          setCancelError(t('orders.cancel_error_busy'))
                         } else if (status !== 401 && status !== 403) {
                           console.error('[OrderDetail] cancel error', e)
-                          setCancelError('Failed to cancel the order')
+                          setCancelError(t('orders.cancel_error_generic'))
                         }
                         // 401/403 are handled globally; still clear local loaders
                       } finally {
@@ -622,13 +663,101 @@ function OrderDetail({ order, onBack }: { order: any; onBack: () => void }) {
                       }
                     }}
                   >
-                    {canceling ? 'Cancelling…' : 'Cancel Order'}
+                    {canceling ? t('orders.cancelling') : t('orders.cancel_order')}
                   </button>
                 </div>
               )}
             </div>
           )
         })()}
+        {/* Seller Details - Hidden if Delivered */}
+        {(localOrder?.sellerContact || localOrder?.store) && normalizeStatus(localOrder.status) !== 'DELIVERED' && (
+          <div style={{ background: '#FFFFFF', borderRadius: 16, padding: 16, boxShadow: '0 6px 16px rgba(0,0,0,0.06)', marginBottom: 12 }}>
+            <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 8 }}>Seller Details</div>
+            
+            <div style={{ fontSize: 13, marginBottom: 4, fontWeight: 600 }}>
+              {localOrder.store?.name || localOrder.sellerContact?.name || 'Seller'}
+            </div>
+            
+            {(localOrder.store?.phone || localOrder.sellerContact?.phone) && (
+              <div style={{ fontSize: 13, color: '#555', marginBottom: 4 }}>
+                <span style={{ fontWeight: 500 }}>Phone: </span>{localOrder.store?.phone || localOrder.sellerContact?.phone}
+              </div>
+            )}
+
+            {/* Show address from store (preferred), sellerContact, or root address (as per user instruction) */}
+            {(() => {
+               const sAddr = localOrder.store?.address || localOrder.sellerContact?.address || localOrder.address
+               if (!sAddr) return null
+               return (
+                  <div style={{ fontSize: 13, color: '#555', marginBottom: 4 }}>
+                    <span style={{ fontWeight: 500 }}>Address: </span>
+                    {typeof sAddr === 'object' ? (sAddr.fullAddress || JSON.stringify(sAddr)) : sAddr}
+                  </div>
+               )
+            })()}
+            
+            {typeof localOrder.distance === 'number' && (
+               <div style={{ fontSize: 13, color: '#6B7280', marginTop: 8, borderTop: '1px solid #f0f0f0', paddingTop: 8 }}>
+                 <span style={{ fontWeight: 500 }}>Distance: </span>{localOrder.distance.toFixed(2)} km
+               </div>
+            )}
+          </div>
+        )}
+
+        {/* Delivery Address (Customer) */}
+        {(() => {
+           // Explicitly look for delivery address sources in order of priority
+           // NOTE: We explicitly EXCLUDE localOrder.address because it is the seller's address
+           let addr = (localOrder as any).deliveryAddress || 
+                      (localOrder as any).shippingAddress ||
+                      localOrder?.customer?.address
+
+           if (!addr) return null
+
+           const cc = (localOrder as any).customerContact || (localOrder as any).customer || {}
+           const cName = cc.name
+           const cPhone = cc.phone
+
+           return (
+             <div style={{ background: '#FFFFFF', borderRadius: 16, padding: 16, boxShadow: '0 6px 16px rgba(0,0,0,0.06)', marginBottom: 12 }}>
+               <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 8 }}>{t('orders.delivery_address', 'Delivery Address')}</div>
+               
+               {/* Customer Contact Info */}
+               {(cName || cPhone) && (
+                 <div style={{ marginBottom: 8, paddingBottom: 8, borderBottom: '1px solid #F3F4F6' }}>
+                    {cName && <div style={{ fontSize: 13, fontWeight: 600, color: '#111' }}>{cName}</div>}
+                    {cPhone && <div style={{ fontSize: 13, color: '#6B7280' }}>{cPhone}</div>}
+                 </div>
+               )}
+
+               <div style={{ fontSize: 13, color: '#555' }}>
+                 {(() => {
+                   // If it's a string
+                   if (typeof addr === 'string') return <div>{addr}</div>
+                   
+                   // If it's an object with fullAddress
+                   if (addr.fullAddress) {
+                     return <div>{addr.fullAddress}</div>
+                   }
+                   
+                   // If it's structured
+                   return (
+                     <>
+                       {addr.street && <div>{addr.street}</div>}
+                       {addr.area && <div>{addr.area}</div>}
+                       {addr.city && <div>{addr.city}</div>}
+                       {addr.pincode && <div>{addr.pincode}</div>}
+                       {addr.line1 && <div>{addr.line1}</div>}
+                       {addr.zip && <div>{addr.zip}</div>}
+                     </>
+                   )
+                 })()}
+               </div>
+             </div>
+           )
+        })()}
+
         <div style={{ background: '#FFFFFF', borderRadius: 16, padding: 16, boxShadow: '0 6px 16px rgba(0,0,0,0.06)', marginBottom: 12 }}>
           <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 4 }}>{localOrder?.store?.name || ''}</div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, color: '#6B7280' }}>

@@ -1,14 +1,15 @@
 import { useEffect, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useCart } from '../CartContext'
 import { useAuth } from '../AuthContext'
 import { apiFetch } from '../api/client'
 import { track } from '../utils/track'
 
 export default function Store() {
+  const { t } = useTranslation()
   const { jwt } = useAuth()
   const { addItem, getQuantity, increment, decrement, items, clearCart } = useCart()
-  const tenant = (import.meta as any).env?.VITE_DEFAULT_TENANT || 'tenantA'
-  const [storeName, setStoreName] = useState<string>('Store')
+  const [storeName, setStoreName] = useState<string>(t('store.default_name'))
   const [currentStoreId, setCurrentStoreId] = useState<string>('')
   const [showConflictModal, setShowConflictModal] = useState(false)
   const [pendingItem, setPendingItem] = useState<any>(null)
@@ -133,7 +134,7 @@ export default function Store() {
 
   // Styles for new elements
   const searchContainerStyle: React.CSSProperties = {
-    padding: '12px 16px 8px 16px',
+    padding: '12px 16px 16px 16px', // Increased bottom padding
     background: '#FFFFFF',
     position: 'sticky',
     top: 0,
@@ -159,7 +160,7 @@ export default function Store() {
     padding: '0 16px 12px 16px',
     background: '#FFFFFF',
     position: 'sticky',
-    top: '54px', // Height of search container approx
+    top: '68px', // Adjusted for increased search container height
     zIndex: 18,
     scrollbarWidth: 'none', 
   }
@@ -206,18 +207,19 @@ export default function Store() {
     // Track store viewed when we have a valid store id and jwt
     try { if (jwt && effectiveStoreId) track('store_viewed', { storeId: effectiveStoreId }) } catch {}
 
-    // Skip if unauthenticated or no store id available; keep grid empty gracefully
-    if (!jwt || !effectiveStoreId) {
-      if (!effectiveStoreId) console.warn('Store: missing storeId in URL; showing empty grid')
+    // Validate store id
+    if (!effectiveStoreId) {
+      console.warn('Store: missing storeId in URL; showing empty grid')
       return
     }
 
-    const ctx = { jwt, tenant }
+    // Allow browsing without auth (jwt can be empty)
+    const ctx = { jwt: jwt || '' }
     ;(async () => {
       try {
         // Fetch store detail (no UI change, but required per policy)
         const detail = await apiFetch<any>(`/api/storefront/stores/${encodeURIComponent(effectiveStoreId)}`, { method: 'GET' }, ctx)
-        setStoreName(detail?.name || detail?.store?.name || 'Store')
+        setStoreName(detail?.name || detail?.store?.name || t('store.default_name'))
       } catch (e) {
         console.warn('Store detail load error', e)
       }
@@ -226,7 +228,11 @@ export default function Store() {
         setProductsLoading(true)
         // Fetch storefront products for the store
         const resp = await apiFetch<any[]>(`/api/storefront/stores/${encodeURIComponent(effectiveStoreId)}/products`, { method: 'GET' }, ctx)
-        const normalized = (resp || []).map((p: any) => ({
+        
+        // Robust parsing: handle array or object wrapper
+        const list = Array.isArray(resp) ? resp : (resp && (resp as any).products) || []
+        
+        const normalized = list.map((p: any) => ({
           id: String(p.id),
           name: p.name || 'Product',
           price: Number(p.price ?? 0),
@@ -242,7 +248,7 @@ export default function Store() {
         setProductsLoading(false)
       }
     })()
-  }, [jwt, tenant])
+  }, [jwt])
 
   const handleAddItem = (p: any) => {
     // Check for store conflict
@@ -386,22 +392,22 @@ export default function Store() {
           display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16
         }}>
           <div style={{ background: '#FFF', borderRadius: 12, padding: 24, width: '100%', maxWidth: 320 }}>
-            <h3 style={{ fontSize: 18, fontWeight: 700, marginBottom: 8 }}>Start a new cart?</h3>
+            <h3 style={{ fontSize: 18, fontWeight: 700, marginBottom: 8 }}>{t('store.conflict_title')}</h3>
             <p style={{ fontSize: 14, color: '#666', marginBottom: 20 }}>
-              Your cart has items from another store. Do you want to discard them and add items from this store?
+              {t('store.conflict_desc')}
             </p>
             <div style={{ display: 'flex', gap: 12 }}>
               <button
                 onClick={() => setShowConflictModal(false)}
                 style={{ flex: 1, padding: '10px', borderRadius: 8, border: '1px solid #E5E7EB', background: '#FFF', fontWeight: 600 }}
               >
-                No
+                {t('common.no')}
               </button>
               <button
                 onClick={confirmChangeStore}
                 style={{ flex: 1, padding: '10px', borderRadius: 8, background: '#111827', color: '#FFF', fontWeight: 600, border: 'none' }}
               >
-                Yes
+                {t('common.yes')}
               </button>
             </div>
           </div>

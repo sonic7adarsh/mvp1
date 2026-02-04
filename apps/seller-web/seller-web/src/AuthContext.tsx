@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useMemo, useState } from 'react'
+import { createContext, useContext, useMemo, useState } from 'react'
 
 type AuthState = {
   isAuthenticated: boolean
@@ -15,14 +15,12 @@ type AuthContextType = AuthState & {
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [jwt, setJwt] = useState<string>('')
+  const [jwt, setJwt] = useState<string>(() => localStorage.getItem('seller_token') || '')
   const [userId, setUserId] = useState<string | undefined>(undefined)
   const [roles, setRoles] = useState<string[] | undefined>(undefined)
 
-  useEffect(() => {
-    const stored = localStorage.getItem('seller_token') || ''
-    if (stored) setJwt(stored)
-  }, [])
+  // Remove the useEffect that sets jwt from localStorage since we use lazy init
+  // We can add logic here to restore userId/roles from token if needed in the future
 
   const login = (nextJwt: string, user: { id: string; roles?: string[] }) => {
     setJwt(nextJwt)

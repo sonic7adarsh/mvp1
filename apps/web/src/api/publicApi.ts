@@ -3,13 +3,11 @@ import axios, { AxiosError } from 'axios'
 const proxyTarget = (import.meta as any).env?.VITE_PROXY_TARGET
 // In dev, route via Vite proxy to avoid CORS; in other envs, hit backend directly
 const API_BASE_URL = proxyTarget ? '' : 'http://localhost:8080'
-const tenant = (import.meta as any).env?.VITE_DEFAULT_TENANT || 'tenantA'
 
 export const publicApi = axios.create({
   baseURL: API_BASE_URL,
   headers: {
     'Content-Type': 'application/json',
-    'X-Tenant-Domain': tenant,
   },
 })
 

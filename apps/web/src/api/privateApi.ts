@@ -2,7 +2,6 @@ import axios, { AxiosError } from 'axios'
 
 const proxyTarget = (import.meta as any).env?.VITE_PROXY_TARGET
 const API_BASE_URL = proxyTarget ? '' : 'http://localhost:8080'
-const tenantEnv = (import.meta as any).env?.VITE_DEFAULT_TENANT || 'tenantA'
 
 export const privateApi = axios.create({
   baseURL: API_BASE_URL,
@@ -11,13 +10,11 @@ export const privateApi = axios.create({
   },
 })
 
-// Always attach tenant and auth headers on every request
+// Always attach auth headers on every request
 privateApi.interceptors.request.use((config) => {
   try {
     const token = (typeof window !== 'undefined') ? (window.localStorage.getItem('customer_token') || '') : ''
     config.headers = config.headers || {}
-    // Mandatory tenant header
-    ;(config.headers as any)['X-Tenant-Domain'] = tenantEnv
     // Attach auth if present
     if (token && token.trim().length > 0) {
       ;(config.headers as any).Authorization = `Bearer ${token}`
@@ -26,13 +23,26 @@ privateApi.interceptors.request.use((config) => {
     if ((import.meta as any).env?.DEV) {
       const maskedAuth = (config.headers as any).Authorization ? 'Bearer ******' : undefined
       console.log('[privateApi] outgoing headers:', {
-        'X-Tenant-Domain': (config.headers as any)['X-Tenant-Domain'],
         Authorization: maskedAuth,
       })
     }
   } catch {}
   return config
 })
+
+// Handle 401 Unauthorized globally
+privateApi.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response && error.response.status === 401) {
+      // Token expired or invalid - notify app to logout
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new Event('auth:logout'))
+      }
+    }
+    return Promise.reject(error)
+  }
+)
 
 export function setPrivateApiAuth(token?: string) {
   if (token && token.trim().length > 0) {
@@ -54,7 +64,7 @@ export function logPrivateAxiosError(err: unknown, context: string) {
       method, 
       url, 
       responseHeaders: headers, 
-      requestHeaders, // Log request headers to debug auth/tenant
+      requestHeaders, // Log request headers to debug auth
       data 
     })
   } else {

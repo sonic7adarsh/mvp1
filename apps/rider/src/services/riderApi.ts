@@ -1,9 +1,5 @@
 export type ApiError = { status: number; code?: string; message?: string }
 
-function getTenantHeader(): string {
-  const tenantEnv = (import.meta as any).env?.VITE_DEFAULT_TENANT
-  return tenantEnv && String(tenantEnv).length > 0 ? String(tenantEnv) : 'tenantA'
-}
 
 function authHeader(): string {
   const token = (typeof window !== 'undefined' ? localStorage.getItem('rider_token') || '' : '')
@@ -12,9 +8,7 @@ function authHeader(): string {
 
 async function apiFetch<T>(path: string, options: RequestInit): Promise<T> {
   const headers: Record<string, string> = { 'Content-Type': 'application/json' }
-  const tenant = getTenantHeader()
   const auth = authHeader()
-  if (tenant) headers['X-Tenant-Domain'] = tenant
   if (auth) headers['Authorization'] = auth
   const isDev = !!(import.meta as any).env?.DEV
   const base = isDev ? '' : String((import.meta as any).env?.VITE_API_BASE_URL || '')

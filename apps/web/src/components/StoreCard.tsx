@@ -1,4 +1,5 @@
 import React from 'react'
+import { useTranslation } from 'react-i18next'
 
 export interface Store {
   id: string
@@ -18,6 +19,7 @@ interface StoreCardProps {
 }
 
 export const StoreCard: React.FC<StoreCardProps> = ({ store, onClick }) => {
+  const { t } = useTranslation()
   // Strict Status Logic (Single Source)
   const isOpen = store.status === 'open' && !store.orderingDisabled
 
@@ -61,13 +63,15 @@ export const StoreCard: React.FC<StoreCardProps> = ({ store, onClick }) => {
     justifyContent: 'center', // Center vertically
     flex: 1,
     padding: '2px 0',
+    minWidth: 0, // Enable text truncation in flex child
+    overflow: 'hidden',
   }
 
   const headerStyle: React.CSSProperties = {
     display: 'flex',
     justifyContent: 'space-between',
     alignItems: 'center', // Align center
-    marginBottom: '8px',
+    marginBottom: '4px',
   }
 
   const nameStyle: React.CSSProperties = {
@@ -77,12 +81,18 @@ export const StoreCard: React.FC<StoreCardProps> = ({ store, onClick }) => {
     lineHeight: '1.25',
     marginRight: '8px',
     flex: 1,
+    whiteSpace: 'nowrap',
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
   }
 
   const metaRowStyle: React.CSSProperties = {
     display: 'flex',
-    flexDirection: 'column', // Stack Area under Name
+    flexDirection: 'row',
+    alignItems: 'center',
     gap: '4px',
+    overflow: 'hidden',
+    width: '100%',
   }
 
   const areaStyle: React.CSSProperties = {
@@ -91,7 +101,7 @@ export const StoreCard: React.FC<StoreCardProps> = ({ store, onClick }) => {
     whiteSpace: 'nowrap',
     overflow: 'hidden',
     textOverflow: 'ellipsis',
-    maxWidth: '100%',
+    flex: 1, // Take available space
   }
 
   const statusPillStyle: React.CSSProperties = {
@@ -105,6 +115,14 @@ export const StoreCard: React.FC<StoreCardProps> = ({ store, onClick }) => {
     letterSpacing: '0.5px',
     whiteSpace: 'nowrap',
     border: isOpen ? '1px solid #D1FAE5' : '1px solid #E5E7EB'
+  }
+
+  const formatMeta = () => {
+    const parts = []
+    if (store.type) parts.push(store.type.charAt(0).toUpperCase() + store.type.slice(1))
+    if (store.address) parts.push(store.address)
+    else parts.push(t('store.local_area'))
+    return parts.join(' • ')
   }
 
   return (
@@ -123,12 +141,12 @@ export const StoreCard: React.FC<StoreCardProps> = ({ store, onClick }) => {
         <div style={headerStyle}>
           <div style={nameStyle}>{store.name}</div>
           <span style={statusPillStyle}>
-            {isOpen ? 'OPEN' : 'CLOSED'}
+            {isOpen ? t('store.status_open') : t('store.status_closed')}
           </span>
         </div>
         <div style={metaRowStyle}>
            <span style={areaStyle}>
-             {store.address || 'Local Area'}
+             {formatMeta()}
            </span>
         </div>
       </div>

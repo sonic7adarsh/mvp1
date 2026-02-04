@@ -1,11 +1,10 @@
-export type ApiContext = { jwt: string; tenant: string }
+export type ApiContext = { jwt: string }
 
 export type ApiError = { status: number; code?: string; message?: string }
 
 export async function apiFetch<T>(path: string, options: RequestInit, ctx: ApiContext): Promise<T> {
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
-    'X-Tenant-Domain': ctx.tenant,
     Authorization: `Bearer ${ctx.jwt}`,
   }
   const base = (globalThis as any).EXPO_PUBLIC_API_BASE || ''

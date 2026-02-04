@@ -8,15 +8,12 @@ type Role = 'customer' | 'seller' | 'rider' | 'admin'
 
 function TenantTokenForm({
   jwt,
-  tenant,
   onChange,
 }: {
   jwt?: string
-  tenant?: string
-  onChange: (next: { jwt?: string; tenant?: string }) => void
+  onChange: (next: { jwt?: string }) => void
 }) {
   const [localJwt, setLocalJwt] = useState(jwt || '')
-  const [localTenant, setLocalTenant] = useState(tenant || '')
   return (
     <View style={{ flexDirection: 'row', gap: 8 }}>
       <TextInput
@@ -25,13 +22,7 @@ function TenantTokenForm({
         onChangeText={setLocalJwt}
         style={{ borderWidth: 1, padding: 8, flex: 1 }}
       />
-      <TextInput
-        placeholder="Tenant"
-        value={localTenant}
-        onChangeText={setLocalTenant}
-        style={{ borderWidth: 1, padding: 8, width: 160 }}
-      />
-      <Button title="Apply" onPress={() => onChange({ jwt: localJwt, tenant: localTenant })} />
+      <Button title="Apply" onPress={() => onChange({ jwt: localJwt })} />
     </View>
   )
 }
@@ -50,19 +41,18 @@ function RoleSwitcher({ roles, activeRole, onChange }: { roles: Role[]; activeRo
 
 export default function App() {
   const [jwt, setJwt] = useState<string | undefined>()
-  const [tenant, setTenant] = useState<string | undefined>()
   const [activeRole, setActiveRole] = useState<Role>('customer')
   const roles: Role[] = ['customer', 'seller', 'rider', 'admin']
-  const isReady = useMemo(() => Boolean(jwt && tenant), [jwt, tenant])
+  const isReady = useMemo(() => Boolean(jwt), [jwt])
 
-  const ctx: ApiContext | undefined = jwt && tenant ? { jwt, tenant } : undefined
+  const ctx: ApiContext | undefined = jwt ? { jwt } : undefined
 
   return (
     <SafeAreaView style={{ padding: 12 }}>
       <Text style={{ fontSize: 22, fontWeight: '600', marginBottom: 8 }}>BharatShop Mobile MVP v1</Text>
-      <TenantTokenForm jwt={jwt} tenant={tenant} onChange={(n) => { setJwt(n.jwt); setTenant(n.tenant) }} />
+      <TokenForm jwt={jwt} onChange={(n) => { setJwt(n.jwt) }} />
       <RoleSwitcher roles={roles} activeRole={activeRole} onChange={setActiveRole} />
-      {!isReady && <Text style={{ backgroundColor: '#fff3cd', padding: 8, marginTop: 8 }}>Enter JWT and Tenant to enable API calls.</Text>}
+      {!isReady && <Text style={{ backgroundColor: '#fff3cd', padding: 8, marginTop: 8 }}>Enter JWT to enable API calls.</Text>}
 
       {isReady && activeRole === 'customer' && (
         <ScrollView style={{ marginTop: 12 }}>

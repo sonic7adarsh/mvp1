@@ -5,7 +5,6 @@ import SafeContainer from '../components/SafeContainer'
 
 export default function LoginScreen() {
   const { setJwt, setRoles } = useRiderSession()
-  const tenant = (import.meta as any).env?.VITE_DEFAULT_TENANT || ''
 
   const appNameStyle: React.CSSProperties = { fontSize: 18, fontWeight: 700, color: '#1F1F1F', marginBottom: 12 }
   const cardStyle: React.CSSProperties = { width: '100%', background: '#FFFFFF', borderRadius: 16, padding: '20px', boxShadow: '0 0 0 1px rgba(0,0,0,0.04)' }

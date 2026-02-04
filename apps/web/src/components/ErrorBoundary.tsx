@@ -1,9 +1,11 @@
 import React from 'react';
+import { withTranslation } from 'react-i18next';
+import type { WithTranslation } from 'react-i18next';
 
 type State = { hasError: boolean };
 
-export class ErrorBoundary extends React.Component<
-  { children: React.ReactNode },
+class ErrorBoundaryInternal extends React.Component<
+  { children: React.ReactNode } & WithTranslation,
   State
 > {
   state: State = { hasError: false };
@@ -17,6 +19,7 @@ export class ErrorBoundary extends React.Component<
   }
 
   render() {
+    const { t } = this.props;
     if (this.state.hasError) {
       return (
         <div style={{
@@ -28,9 +31,9 @@ export class ErrorBoundary extends React.Component<
           textAlign: 'center'
         }}>
           <div>
-            <h2 style={{ marginBottom: 8 }}>Something went wrong</h2>
+            <h2 style={{ marginBottom: 8 }}>{t('common.something_wrong')}</h2>
             <p style={{ color: '#666' }}>
-              Please refresh the page or try again.
+              {t('common.refresh_page')}
             </p>
           </div>
         </div>
@@ -40,3 +43,5 @@ export class ErrorBoundary extends React.Component<
     return this.props.children;
   }
 }
+
+export const ErrorBoundary = withTranslation()(ErrorBoundaryInternal);

@@ -1,4 +1,5 @@
 import React, { useRef } from 'react'
+import { useTranslation } from 'react-i18next'
 
 interface CategoryGridProps {
   categories: string[]
@@ -11,6 +12,7 @@ export const CategoryGrid: React.FC<CategoryGridProps> = ({
   selectedCategory,
   onSelectCategory,
 }) => {
+  const { t } = useTranslation()
   const scrollRef = useRef<HTMLDivElement>(null)
 
   const scroll = (direction: 'left' | 'right') => {
@@ -46,8 +48,11 @@ export const CategoryGrid: React.FC<CategoryGridProps> = ({
       'electronics': '/icons/electronics.svg',
       'electronics & lifestyle': '/icons/electronics.svg',
       'pharmacy': '/icons/pharmacy.svg',
+      'medicine': '/icons/pharmacy.svg',
       'specialty': '/icons/pharmacy.svg',
       'automotive': '/icons/automotive.svg',
+      'service': '/icons/automotive.svg',
+      'stationary': '/icons/household.svg',
       'restaurant': '/icons/restaurant.svg',
     }
     return map[key] || '/icons/grocery.svg' // Fallback
@@ -55,23 +60,8 @@ export const CategoryGrid: React.FC<CategoryGridProps> = ({
 
   const getCategoryLabel = (cat: string) => {
     const key = cat.toLowerCase()
-    const map: Record<string, string> = {
-        'all': 'All',
-        'grocery': 'Groceries & Staples',
-        'fresh': 'Fresh Produce',
-        'dairy': 'Dairy & Bakery',
-        'snacks': 'Snacks & Beverages',
-        'beauty': 'Personal Care & Beauty',
-        'household': 'Household Essentials',
-        'baby': 'Baby & Pet Care',
-        'electronics': 'Electronics & Lifestyle',
-        'pharmacy': 'Pharmacy',
-        'specialty': 'Specialty',
-        'automotive': 'Automotive',
-        'restaurant': 'Restaurants',
-    }
-    // Fallback: Capitalize first letter
-    return map[key] || cat.charAt(0).toUpperCase() + cat.slice(1)
+    // Use translations for category labels
+    return t(`categories.${key}`, { defaultValue: cat.charAt(0).toUpperCase() + cat.slice(1) })
   }
 
   const containerStyle: React.CSSProperties = {

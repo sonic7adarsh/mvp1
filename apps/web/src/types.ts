@@ -17,10 +17,15 @@ export type DeliveryStatus =
 
 export type Order = {
   id: string
-  tenant: string
   status: OrderStatus
   slaDeadline?: string // ISO time
   inventoryOk?: boolean
+  sellerContact?: {
+    name: string
+    phone: string
+    address: string
+  }
+  distance?: number
 }
 
 export type Delivery = {
