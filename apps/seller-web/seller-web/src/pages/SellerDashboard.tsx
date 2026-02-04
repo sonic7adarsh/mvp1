@@ -12,45 +12,6 @@ export default function SellerDashboard() {
   const [stats, setStats] = useState({ today: 0, pending: 0, products: 0 })
   const [loading, setLoading] = useState(true)
 
-  // Alarm logic
-  const alarmRef = useRef<any>(null)
-
-  useEffect(() => {
-    // Play sound if there are pending orders
-    if (stats.pending > 0) {
-      const playAlarm = () => {
-         const ctx = new (window.AudioContext || (window as any).webkitAudioContext)()
-         const osc = ctx.createOscillator()
-         const gain = ctx.createGain()
-         osc.connect(gain)
-         gain.connect(ctx.destination)
-         osc.type = 'sine'
-         osc.frequency.value = 880 // A5
-         gain.gain.value = 0.1
-         osc.start()
-         setTimeout(() => osc.stop(), 200) // 200ms beep
-         setTimeout(() => {
-             const osc2 = ctx.createOscillator()
-             const gain2 = ctx.createGain()
-             osc2.connect(gain2)
-             gain2.connect(ctx.destination)
-             osc2.type = 'sine'
-             osc2.frequency.value = 880
-             gain2.gain.value = 0.1
-             osc2.start()
-             setTimeout(() => osc2.stop(), 200)
-         }, 400) // Double beep
-      }
-      
-      // Play immediately
-      playAlarm()
-      
-      // Loop every 3 seconds
-      const interval = setInterval(playAlarm, 3000)
-      return () => clearInterval(interval)
-    }
-  }, [stats.pending])
-
   useEffect(() => {
     if (jwt) {
       loadData()

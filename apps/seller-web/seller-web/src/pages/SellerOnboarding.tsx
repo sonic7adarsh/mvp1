@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { apiFetch } from '../api/client'
 import { useAuth } from '../AuthContext'
 import { useToast } from '../ToastContext'
@@ -17,6 +17,7 @@ export default function SellerOnboarding() {
   const [formData, setFormData] = useState({
     ownerName: '',
     storeName: '',
+    category: '',
     shopNo: '',
     building: '',
     street: '',
@@ -27,12 +28,28 @@ export default function SellerOnboarding() {
     lng: 77.2090
   })
 
+  const [categories, setCategories] = useState<any[]>([])
+
+  useEffect(() => {
+    const fetchCategories = async () => {
+      try {
+        const res = await apiFetch<any[]>('/api/storefront/categories', {}, { jwt })
+        if (Array.isArray(res)) {
+          setCategories(res)
+        }
+      } catch (e) {
+        console.error('Failed to fetch categories', e)
+      }
+    }
+    fetchCategories()
+  }, [jwt])
+
   const handleLocationSelect = (lat: number, lng: number) => {
     setFormData(prev => ({ ...prev, lat, lng }))
   }
 
   const handleSubmit = async () => {
-    if (!formData.ownerName || !formData.storeName || !formData.shopNo || !formData.building || !formData.area || !formData.city || !formData.pincode) {
+    if (!formData.ownerName || !formData.storeName || !formData.category || !formData.shopNo || !formData.building || !formData.area || !formData.city || !formData.pincode) {
       showToast(t('onboarding.errors.mandatory_fields'), 'error')
       return
     }
@@ -47,7 +64,7 @@ export default function SellerOnboarding() {
         body: JSON.stringify({
           ownerName: formData.ownerName,
           name: formData.storeName,
-          category: 'General', // Default category
+          category: formData.category,
           address: {
             full: fullAddress,
             shopNo: formData.shopNo,
@@ -140,6 +157,23 @@ export default function SellerOnboarding() {
           onChange={e => setFormData({...formData, storeName: e.target.value})}
           style={inputStyle}
         />
+      </div>
+
+      <div style={inputGroupStyle}>
+        <label style={labelStyle}>{t('onboarding.store_category', 'Store Category')}</label>
+        <select
+          value={formData.category}
+          onChange={e => setFormData({...formData, category: e.target.value})}
+          style={{...inputStyle, appearance: 'none', background: '#fff url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23131313%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E") no-repeat right 16px center', backgroundSize: '12px'}}
+        >
+          <option value="">{t('onboarding.select_category', 'Select Category')}</option>
+          {categories.map((cat: any) => {
+            const label = cat.name || cat.slug || ''
+            return (
+              <option key={cat.id || label} value={label}>{label}</option>
+            )
+          })}
+        </select>
       </div>
 
       <div style={inputGroupStyle}>

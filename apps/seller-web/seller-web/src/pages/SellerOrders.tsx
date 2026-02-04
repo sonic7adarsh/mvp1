@@ -37,6 +37,10 @@ export default function SellerOrders() {
   // Tenant deprecated
   
   const [orders, setOrders] = useState<SellerOrder[]>([])
+  const ordersRef = useRef(orders)
+  const updatingRef = useRef<Set<string>>(new Set())
+  useEffect(() => { ordersRef.current = orders }, [orders])
+
   const [loading, setLoading] = useState(true)
   const [selectedOrder, setSelectedOrder] = useState<SellerOrder | null>(null)
   const [loadingDetail, setLoadingDetail] = useState(false)
@@ -46,56 +50,12 @@ export default function SellerOrders() {
   const [rejectReason, setRejectReason] = useState('')
   const [rejectImage, setRejectImage] = useState<string | null>(null)
 
-  // Alarm logic
-  const alarmRef = useRef<HTMLAudioElement | null>(null)
-  
-  useEffect(() => {
-    // Check for any PLACED orders
-    const hasPlaced = orders.some(o => o.status === 'PLACED')
-    
-    if (hasPlaced) {
-      if (!alarmRef.current) {
-        // Simple beep data URI (short beep)
-        alarmRef.current = new Audio('data:audio/wav;base64,UklGRl9vT19XQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YU')
-      }
-      
-      // Create a simple beep loop
-      const playAlarm = () => {
-         // Re-create audio context or use simple Audio
-         const ctx = new (window.AudioContext || (window as any).webkitAudioContext)()
-         const osc = ctx.createOscillator()
-         const gain = ctx.createGain()
-         osc.connect(gain)
-         gain.connect(ctx.destination)
-         osc.type = 'sine'
-         osc.frequency.value = 880 // A5
-         gain.gain.value = 0.1
-         osc.start()
-         setTimeout(() => osc.stop(), 200) // 200ms beep
-         setTimeout(() => {
-             const osc2 = ctx.createOscillator()
-             const gain2 = ctx.createGain()
-             osc2.connect(gain2)
-             gain2.connect(ctx.destination)
-             osc2.type = 'sine'
-             osc2.frequency.value = 880
-             gain2.gain.value = 0.1
-             osc2.start()
-             setTimeout(() => osc2.stop(), 200)
-         }, 400) // Double beep
-      }
-
-      // Interval for repeating alarm
-      const interval = setInterval(playAlarm, 3000) // Every 3 seconds
-      return () => clearInterval(interval)
-    }
-  }, [orders])
-
   useEffect(() => {
     if (jwt) fetchOrders()
   }, [jwt])
 
   // Handle URL hash for deep linking / routing
+  // FIXED: Removed 'orders' dependency to prevent re-fetching old data after optimistic update
   useEffect(() => {
     const handleHash = () => {
       const hash = window.location.hash
@@ -103,12 +63,8 @@ export default function SellerOrders() {
         const params = new URLSearchParams(hash.split('?')[1])
         const id = params.get('id')
         if (id) {
-          // Optimistically show from list if available
-          if (orders.length > 0) {
-            const found = orders.find(o => o.id === id)
-            if (found) setSelectedOrder(found)
-          }
-          // Always fetch fresh details from separate API
+          // Only fetch if we don't have it or it's different (optional optimization)
+          // But crucial: Do NOT rely on 'orders' state here to avoid stale closures/race conditions in this effect
           fetchOrderDetail(id)
         }
       } else if (hash === '#/orders' || hash === '#/orders/') {
@@ -121,7 +77,7 @@ export default function SellerOrders() {
     
     window.addEventListener('hashchange', handleHash)
     return () => window.removeEventListener('hashchange', handleHash)
-  }, [orders])
+  }, []) // Empty dependency array: Only run on mount and hash change events
 
   const openOrder = (order: SellerOrder) => {
     // Update URL to support back button
@@ -151,7 +107,15 @@ export default function SellerOrders() {
             status: (o.status || '').toUpperCase() as SellerOrder['status']
           }
         })
-        setOrders(safeOrders)
+        setOrders(prev => {
+            return safeOrders.map(newOrder => {
+                if (updatingRef.current.has(newOrder.id)) {
+                    const current = prev.find(p => p.id === newOrder.id)
+                    if (current) return { ...newOrder, status: current.status }
+                }
+                return newOrder
+            })
+        })
         
         // If we have a selected order, update it with fresh data from list to prevent "corruption"
         if (selectedOrder) {
@@ -189,7 +153,12 @@ export default function SellerOrders() {
             ...res,
             status: (res.status || '').toUpperCase() as SellerOrder['status']
         }
-        setSelectedOrder(safeOrder)
+        setSelectedOrder(prev => {
+            if (updatingRef.current.has(orderId) && prev?.id === orderId) {
+                return { ...safeOrder, status: prev.status }
+            }
+            return safeOrder
+        })
       }
     } catch (e) {
       console.error('Failed to fetch order detail', e)
@@ -202,6 +171,9 @@ export default function SellerOrders() {
     // Store previous state for rollback
     const prevOrders = [...orders]
     const prevSelectedOrder = selectedOrder ? { ...selectedOrder } : null
+    
+    // Track update in progress
+    updatingRef.current.add(orderId)
 
     try {
       let endpoint = ''
@@ -262,6 +234,8 @@ export default function SellerOrders() {
       setOrders(prevOrders)
       if (prevSelectedOrder) setSelectedOrder(prevSelectedOrder)
       alert(t('common.error_updating_status', 'Failed to update status'))
+    } finally {
+      updatingRef.current.delete(orderId)
     }
   }
 
@@ -438,7 +412,7 @@ export default function SellerOrders() {
           </div>
 
           {/* Scrollable Content */}
-          <div style={{ flex: 1, overflowY: 'auto', padding: 16, paddingBottom: 100 }}>
+          <div className="no-scrollbar" style={{ flex: 1, overflowY: 'auto', padding: 16, paddingBottom: 100 }}>
             
             {/* Status & ID */}
             <div style={{ background: '#fff', padding: 16, borderRadius: 12, marginBottom: 12, boxShadow: 'var(--shadow-sm)' }}>
@@ -451,8 +425,8 @@ export default function SellerOrders() {
               </div>
             </div>
 
-            {/* Customer Details */}
-            {(() => {
+            {/* Customer Details - Hidden for Delivered Orders */}
+            {selectedOrder.status !== 'DELIVERED' && (() => {
                const c = selectedOrder.customer || selectedOrder.user || {}
                const cc = selectedOrder.customerContact || {}
                const addrObj = selectedOrder.address || {}
