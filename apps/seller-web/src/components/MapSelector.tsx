@@ -26,7 +26,7 @@ function LocationMarker({ onSelect, initialPos, position, setPosition }: {
   setPosition: (pos: L.LatLngExpression) => void
 }) {
   const map = useMapEvents({
-    click(e) {
+    click(e: L.LeafletMouseEvent) {
       setPosition(e.latlng)
       onSelect(e.latlng.lat, e.latlng.lng)
       map.flyTo(e.latlng, map.getZoom())
