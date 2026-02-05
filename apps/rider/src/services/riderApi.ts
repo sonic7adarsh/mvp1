@@ -39,22 +39,7 @@ export const riderApi = {
       '/api/rider/orders/my',
       { method: 'GET' }
     ),
-  // Accept an available order
-  acceptOrder: async (orderId: string) => {
-    try {
-      await apiFetch<void>(`/api/rider/orders/${encodeURIComponent(orderId)}/accept`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({}),
-      })
-    } catch (e: any) {
-      if (e && typeof e === 'object' && 'status' in e && e.status === 409) {
-        const err: ApiError = { status: 409, message: 'Order already taken' }
-        throw err
-      }
-      throw e
-    }
-  },
+
   sendOtp: (phone: string) =>
     apiFetch<any>('/api/auth/send-otp', {
       method: 'POST',

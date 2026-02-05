@@ -81,7 +81,7 @@ export default function DeliveryInProgressScreen() {
                 type="button"
                 style={btnStyle}
                 disabled={(otp || '').trim().length !== 6}
-                onClick={onCompleteDelivery}
+                onClick={deliver}
               >
                 Complete Delivery
               </button>

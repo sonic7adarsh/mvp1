@@ -1,6 +1,6 @@
 [build]
-  publish = "dist"
-  command = "npm install && npm run build"
+  publish = "apps/seller-web/dist"
+  command = "npm install && npm run build --workspace=seller-web"
 
 [[redirects]]
   from = "/*"
