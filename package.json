@@ -9,6 +9,7 @@
   "scripts": {
     "web": "npm run dev --workspace web",
     "rider": "npm run dev --workspace rider-web",
-    "mobile": "npm start --workspace mobile"
+    "mobile": "npm start --workspace mobile",
+    "build": "npm run build --workspaces --if-present"
   }
 }
