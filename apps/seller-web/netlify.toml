@@ -1,3 +1,8 @@
 [build]
   publish = "dist"
-  command = "cd ../.. && npm install && npm run build --workspace=seller-web"
+  command = 'if [ -f "package.json" ] && grep -q "workspaces" "package.json"; then npm install && npm run build --workspace=seller-web; else cd ../.. && npm install && npm run build --workspace=seller-web; fi'
+
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
