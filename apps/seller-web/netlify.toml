@@ -1,10 +1,11 @@
 [build]
-  # We assume Base Directory is set to "apps/seller-web" in Netlify UI.
-  # This command goes up to root, installs dependencies, and builds the seller-web workspace.
-  command = "cd ../.. && npm install && npm run build --workspace=seller-web"
+  # Robust Build Command:
+  # 1. Checks if we are at Root (package.json has 'workspaces').
+  # 2. If Root: Installs, Builds, and copies artifacts to ./dist (so publish="dist" works).
+  # 3. If Subdir: Moves to Root, Installs, Builds. (Artifacts land in apps/seller-web/dist, which is ./dist relative to subdir).
   
-  # The build output will be in apps/seller-web/dist (relative to root).
-  # Since Base Directory is apps/seller-web, this is just "dist".
+  command = 'if [ -f "package.json" ] && grep -q "workspaces" "package.json"; then npm install && npm run build --workspace=seller-web && rm -rf dist && cp -r apps/seller-web/dist dist; else cd ../.. && npm install && npm run build --workspace=seller-web; fi'
+  
   publish = "dist"
 
 [[redirects]]
