@@ -1,9 +1,11 @@
 [build]
-  # Publish directory relative to the base directory
-  publish = "dist"
+  # We assume Base Directory is set to "apps/seller-web" in Netlify UI.
+  # This command goes up to root, installs dependencies, and builds the seller-web workspace.
+  command = "cd ../.. && npm install && npm run build --workspace=seller-web"
   
-  # Run the build script (works for both Root and Subdir base settings)
-  command = "bash netlify-build.sh || bash apps/seller-web/netlify-build.sh"
+  # The build output will be in apps/seller-web/dist (relative to root).
+  # Since Base Directory is apps/seller-web, this is just "dist".
+  publish = "dist"
 
 [[redirects]]
   from = "/*"
