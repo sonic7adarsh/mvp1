@@ -1,6 +1,9 @@
 [build]
+  # Publish directory relative to the base directory
   publish = "dist"
-  command = 'if [ -f "package.json" ] && grep -q "workspaces" "package.json"; then npm install && npm run build --workspace=seller-web; else cd ../.. && npm install && npm run build --workspace=seller-web; fi'
+  
+  # Run the build script (works for both Root and Subdir base settings)
+  command = "bash netlify-build.sh || bash apps/seller-web/netlify-build.sh"
 
 [[redirects]]
   from = "/*"
