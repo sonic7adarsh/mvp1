@@ -1,5 +1,4 @@
 [build]
-  base = "apps/seller-web"
   publish = "dist"
   command = "npm install && npm run build"
 
