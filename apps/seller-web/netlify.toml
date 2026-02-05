@@ -1,8 +1,0 @@
-[build]
-  publish = "apps/seller-web/dist"
-  command = "npm install && npm run build --workspace=seller-web"
-
-[[redirects]]
-  from = "/*"
-  to = "/index.html"
-  status = 200
