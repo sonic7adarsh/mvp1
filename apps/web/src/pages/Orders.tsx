@@ -1,7 +1,7 @@
 import { useEffect, useState, useRef } from 'react'
 import { useAuth } from '../AuthContext'
 import { useTranslation } from 'react-i18next'
-import { apiFetch } from '../api/client'
+// import { apiFetch } from '../api/client'
 import { privateApi } from '../api/privateApi'
 import { track } from '../utils/track'
 import { useLocation } from '../context/LocationContext'
@@ -356,15 +356,15 @@ function OrdersList({ orders, loading }: { orders: any[]; loading: boolean }) {
                 <div style={metaStyle}>
                   <span>{t('orders.items_count', { count: Array.isArray(o.items) ? o.items.length : 0 })}</span>
                   <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
-                    <span style={pillStyle(String(o.status))}>{statusLabel(String(o.status))}</span>
-                    {helperLabel(String(o.status)) && (
-                      <span style={helperTextStyle}>{helperLabel(String(o.status))}</span>
+                    <span style={pillStyle(String(o.status))}>{statusLabel(String(o.status), t)}</span>
+                    {helperLabel(String(o.status), t) && (
+                      <span style={helperTextStyle}>{helperLabel(String(o.status), t)}</span>
                     )}
                   </div>
                 </div>
               </div>
               <div style={rightMetaStyle}>
-                <span style={createdStyle}>{formatCreated(o?.createdAt)}</span>
+                <span style={createdStyle}>{formatCreated(o?.createdAt, t)}</span>
                 <span style={amountStyle}>{`₹${Number(o.total ?? 0)}`}</span>
               </div>
             </div>
@@ -762,8 +762,8 @@ function OrderDetail({ order, onBack }: { order: any; onBack: () => void }) {
           <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 4 }}>{localOrder?.store?.name || ''}</div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, color: '#6B7280' }}>
             <span style={monoStyle}>{`Order ID: ${String(localOrder?.id)}`}</span>
-            <span style={pillStyle(normalizeStatus(localOrder?.status))}>{statusLabel(normalizeStatus(localOrder?.status))}</span>
-            <span>{formatCreated(localOrder?.createdAt)}</span>
+            <span style={pillStyle(normalizeStatus(localOrder?.status))}>{statusLabel(normalizeStatus(localOrder?.status), t)}</span>
+            <span>{formatCreated(localOrder?.createdAt, t)}</span>
           </div>
         </div>
         <div style={{ background: '#FFFFFF', borderRadius: 16, padding: 16, boxShadow: '0 6px 16px rgba(0,0,0,0.06)', marginBottom: 12 }}>

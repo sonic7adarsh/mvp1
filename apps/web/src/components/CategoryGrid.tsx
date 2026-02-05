@@ -15,16 +15,6 @@ export const CategoryGrid: React.FC<CategoryGridProps> = ({
   const { t } = useTranslation()
   const scrollRef = useRef<HTMLDivElement>(null)
 
-  const scroll = (direction: 'left' | 'right') => {
-    if (scrollRef.current) {
-      const scrollAmount = 200
-      scrollRef.current.scrollBy({
-        left: direction === 'left' ? -scrollAmount : scrollAmount,
-        behavior: 'smooth'
-      })
-    }
-  }
-
   const getCategoryIconPath = (cat: string) => {
     const key = cat.toLowerCase()
     // Map slugs/names to icon files
@@ -95,28 +85,6 @@ export const CategoryGrid: React.FC<CategoryGridProps> = ({
     border: '1px solid #F3F4F6',
   }
 
-  const iconWrapperStyle: React.CSSProperties = {
-    width: '32px',
-    height: '32px',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    // background: 'transparent', // Implicit
-  }
-
-  const labelStyle: React.CSSProperties = {
-    marginTop: '0px',
-    fontSize: '10px',
-    fontWeight: 600,
-    color: '#111827',
-    lineHeight: '1',
-    textAlign: 'center',
-    width: '100%',
-    whiteSpace: 'nowrap',
-    overflow: 'hidden',
-    textOverflow: 'ellipsis',
-  }
-
   return (
     <div style={{ position: 'relative' }}>
       <div 
@@ -125,7 +93,6 @@ export const CategoryGrid: React.FC<CategoryGridProps> = ({
         className="no-scrollbar" // Global utility class
       >
         {categories.map((cat) => {
-          const isSelected = selectedCategory === cat
           const isActive = selectedCategory === 'all' ? cat === 'all' : selectedCategory === cat
 
           return (

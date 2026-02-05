@@ -50,25 +50,6 @@ export default function BottomNav({ activeTab, onNavigate, ordersCount = 0 }: Bo
     color: isActive ? 'var(--primary)' : '#6B7280'
   })
 
-  const badgeStyle: React.CSSProperties = {
-    position: 'absolute',
-    top: 6,
-    right: '25%', // Approx centering offset
-    background: '#EF4444',
-    color: 'white',
-    fontSize: 10,
-    height: 16,
-    minWidth: 16,
-    borderRadius: 8,
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: '0 4px',
-    fontWeight: 600,
-    border: '2px solid #FFFFFF', // visual separation
-    animation: ordersCount > 0 ? 'pulse-red 2s infinite' : 'none'
-  }
-
   return (
     <nav style={navStyle}>
       <button style={tabStyle(activeTab === 'dashboard')} onClick={() => onNavigate('/dashboard')}>

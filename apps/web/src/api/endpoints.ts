@@ -85,7 +85,7 @@ export function getCart(ctx: ApiContext) {
   return apiFetch<any>('/api/storefront/cart', { method: 'GET' }, ctx)
 }
 
-export function initiatePayment(amount: number, currency: string = 'INR', method: string = 'upi', ctx: ApiContext) {
+export function initiatePayment(amount: number, currency: string = 'INR', method: string = 'upi', _ctx: ApiContext) {
   return privateApi
     .post('/api/storefront/payments/initiate', { amount, currency, method })
     .then((res) => res.data)
@@ -95,7 +95,7 @@ export function initiatePayment(amount: number, currency: string = 'INR', method
     })
 }
 
-export function verifyPayment(payload: { razorpay_order_id: string; razorpay_payment_id: string; razorpay_signature: string }, ctx: ApiContext) {
+export function verifyPayment(payload: { razorpay_order_id: string; razorpay_payment_id: string; razorpay_signature: string }, _ctx: ApiContext) {
   return privateApi
     .post('/api/storefront/payments/verify', payload)
     .then((res) => res.data)
@@ -105,7 +105,7 @@ export function verifyPayment(payload: { razorpay_order_id: string; razorpay_pay
     })
 }
 
-export function checkout(payload: any, ctx: ApiContext) {
+export function checkout(payload: any, _ctx: ApiContext) {
   return privateApi.post('/api/storefront/checkout', payload)
     .then(res => res.data)
     .catch(err => {
@@ -115,7 +115,7 @@ export function checkout(payload: any, ctx: ApiContext) {
 }
 
 // Seller
-export function getSellerOrders(ctx: ApiContext) {
+export function getSellerOrders(_ctx: ApiContext) {
   return privateApi
     .get('/api/seller/orders')
     .then((res) => res.data as any[])
@@ -125,7 +125,7 @@ export function getSellerOrders(ctx: ApiContext) {
     })
 }
 
-export function sellerAccept(id: string, ctx: ApiContext) {
+export function sellerAccept(id: string, _ctx: ApiContext) {
   return privateApi
     .post(`/api/seller/orders/${id}/accept`)
     .then(() => {})
@@ -144,7 +144,7 @@ export function sellerReject(id: string, reason: string, ctx: ApiContext) {
 export function sellerPrepare(id: string, ctx: ApiContext) {
   return apiFetch<void>(`/api/seller/orders/${id}/prepare`, { method: 'POST' }, ctx)
 }
-export function sellerReady(id: string, ctx: ApiContext) {
+export function sellerReady(id: string, _ctx: ApiContext) {
   return privateApi
     .post(`/api/seller/orders/${id}/ready`)
     .then(() => {})
@@ -174,7 +174,7 @@ export function getDeliveryById(id: string, ctx: ApiContext) {
 export function riderAssign(id: string, ctx: ApiContext) {
   return apiFetch<void>(`/api/logistics/delivery/${id}/assign`, { method: 'POST' }, ctx)
 }
-export function riderPickup(id: string, ctx: ApiContext) {
+export function riderPickup(id: string, _ctx: ApiContext) {
   return privateApi
     .post(`/api/rider/orders/${id}/pickup`)
     .then(() => {})
@@ -189,7 +189,7 @@ export function riderOutForDelivery(id: string, ctx: ApiContext) {
 export function riderAttempt(id: string, ctx: ApiContext) {
   return apiFetch<void>(`/api/logistics/delivery/${id}/attempt`, { method: 'POST' }, ctx)
 }
-export function riderComplete(id: string, otp: string, ctx: ApiContext) {
+export function riderComplete(id: string, _otp: string, _ctx: ApiContext) {
   return privateApi
     .post(`/api/rider/orders/${id}/deliver`)
     .then(() => {})

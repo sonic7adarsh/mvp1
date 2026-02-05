@@ -1,8 +1,7 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useAuth } from '../AuthContext'
-import { useToast } from '../ToastContext'
 import { apiFetch } from '../api/client'
-import { ClipboardList, ChevronRight, X, Check, ShoppingBag, Clock, User } from 'lucide-react'
+import { ClipboardList, X, User } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
 type SellerOrder = {
@@ -48,7 +47,6 @@ export default function SellerOrders() {
   // Rejection logic
   const [showRejectModal, setShowRejectModal] = useState(false)
   const [rejectReason, setRejectReason] = useState('')
-  const [rejectImage, setRejectImage] = useState<string | null>(null)
 
   useEffect(() => {
     if (jwt) fetchOrders()
@@ -239,22 +237,6 @@ export default function SellerOrders() {
     }
   }
 
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (file) {
-      if (file.size > 5 * 1024 * 1024) {
-        // showToast(t('common.file_too_large'), 'error') // Toast not used in this file but context is imported
-        alert(t('common.file_too_large')) // Fallback or use toast if available
-        return
-      }
-      const reader = new FileReader()
-      reader.onloadend = () => {
-        setRejectImage(reader.result as string)
-      }
-      reader.readAsDataURL(file)
-    }
-  }
-
   // Styles
   const headerStyle: React.CSSProperties = {
     padding: '16px',
@@ -427,9 +409,9 @@ export default function SellerOrders() {
 
             {/* Customer Details - Hidden for Delivered Orders */}
             {selectedOrder.status !== 'DELIVERED' && (() => {
-               const c = selectedOrder.customer || selectedOrder.user || {}
+               const c = (selectedOrder.customer || selectedOrder.user || {}) as any
                const cc = selectedOrder.customerContact || {}
-               const addrObj = selectedOrder.address || {}
+               const addrObj = (selectedOrder.address || {}) as any
                const legacyAddr = c.address || selectedOrder.deliveryAddress || selectedOrder.address
 
                const name = cc.name || c.name || selectedOrder.customerName || t('orders.guest_customer')

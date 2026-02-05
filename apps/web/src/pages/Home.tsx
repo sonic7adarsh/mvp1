@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from 'react'
 import { useAuth } from '../AuthContext'
 import { getStores, getCategories } from '../api/endpoints'
-import { track } from '../utils/track'
 import { Skeleton } from '../components/Skeleton'
 import { StoreCard } from '../components/StoreCard'
 import type { Store } from '../components/StoreCard'
@@ -13,11 +12,11 @@ import { useTranslation } from 'react-i18next'
 export default function Home() {
   const { t } = useTranslation()
   const { jwt } = useAuth()
-  const { location, requestCurrentLocation, isDetecting } = useLocation()
+  const { location, isDetecting } = useLocation()
   
   const [stores, setStores] = useState<Store[]>([])
   const [loading, setLoading] = useState(true)
-  const [error, setError] = useState('')
+  const [, setError] = useState('')
   const [selectedCategory, setSelectedCategory] = useState<string>('all')
   const [categories, setCategories] = useState<string[]>(['all'])
   const [searchQuery, setSearchQuery] = useState('')

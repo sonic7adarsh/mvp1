@@ -98,11 +98,11 @@ export async function getGoogleAddress(lat: number, lng: number): Promise<{ labe
                   let landmark = ''
                   let premise = ''
                   let subpremise = ''
-                  let plus_code = ''
+                  // let plus_code = ''
 
                   // Check for Plus Code (often very precise for unaddressed areas)
                   if (result.plus_code && result.plus_code.compound_code) {
-                      plus_code = result.plus_code.compound_code.split(' ')[1] // Extract name part
+                      // plus_code = result.plus_code.compound_code.split(' ')[1] // Extract name part
                   }
 
                   result.address_components.forEach((c: any) => {

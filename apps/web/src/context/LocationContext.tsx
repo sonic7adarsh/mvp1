@@ -1,5 +1,4 @@
 import React, { createContext, useContext, useEffect, useState } from 'react'
-import { publicApi } from '../api/publicApi'
 
 import { getGoogleAddress } from '../utils/locationHelpers'
 import { loadGoogleMaps } from '../utils/googleMapsLoader'

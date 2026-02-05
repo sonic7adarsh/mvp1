@@ -12,10 +12,10 @@ export default function SellerProfile() {
   const { jwt, logout } = useAuth()
   const { showToast } = useToast()
   const [profile, setProfile] = useState<any>(null)
-  const [storeId, setStoreId] = useState<string>('')
+  // const [storeId, setStoreId] = useState<string>('')
   const [isEditing, setIsEditing] = useState(false)
   const [loading, setLoading] = useState(false)
-  const [isStoreOpen, setIsStoreOpen] = useState(false)
+  const [isStoreOpen, setIsStoreOpen] = useState(true)
   
   const [formData, setFormData] = useState({
     ownerName: '',
@@ -39,11 +39,11 @@ export default function SellerProfile() {
     try {
       // Use GET /api/seller/store as per new alignment
       let res: any = null
-      let sId = ''
+      // let sId = ''
       
       try {
         res = await apiFetch<any>('/api/seller/store', {}, { jwt })
-        sId = res.id
+        // sId = res.id
       } catch (e) {
         console.error('Failed to fetch store details from /api/seller/store', e)
         // Fallback
@@ -51,7 +51,7 @@ export default function SellerProfile() {
         const stores = storesRes.stores || (Array.isArray(storesRes) ? storesRes : [])
         if (stores.length > 0) {
             const firstStore = stores[0]
-            sId = firstStore.id
+            // sId = firstStore.id
             res = firstStore
         }
       }
@@ -75,7 +75,7 @@ export default function SellerProfile() {
             }
           }
           setProfile(normalizedProfile)
-          setStoreId(sId)
+          // setStoreId(sId)
           setIsStoreOpen(res.isOpen ?? (res.status === 'open'))
           const addr = normalizedProfile.address || {}
           setFormData({
@@ -155,12 +155,12 @@ export default function SellerProfile() {
         if (res) {
             setProfile((prev: any) => ({
                 ...prev,
-                name: res.name || formData.storeName,
-                address: res.address || prev.address
+                name: (res as any).name || formData.storeName,
+                address: (res as any).address || prev.address
             }))
-            setIsEditing(false)
-            showToast(t('profile_messages.update_success'), 'success')
         }
+        setIsEditing(false)
+        showToast(t('profile_messages.update_success'), 'success')
     } catch (e) {
         console.error('Failed to update profile', e)
         showToast(t('profile_messages.update_failed'), 'error')

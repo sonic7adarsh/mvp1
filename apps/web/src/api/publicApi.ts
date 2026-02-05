@@ -2,7 +2,9 @@ import axios, { AxiosError } from 'axios'
 
 const proxyTarget = (import.meta as any).env?.VITE_PROXY_TARGET
 // In dev, route via Vite proxy to avoid CORS; in other envs, hit backend directly
-const API_BASE_URL = proxyTarget ? '' : 'http://localhost:8080'
+const envBaseUrl = (import.meta as any).env?.VITE_API_BASE_URL
+const isDev = (import.meta as any).env?.DEV
+const API_BASE_URL = isDev ? '' : (envBaseUrl || (proxyTarget ? '' : 'http://localhost:8080'))
 
 export const publicApi = axios.create({
   baseURL: API_BASE_URL,

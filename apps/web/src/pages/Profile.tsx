@@ -3,7 +3,7 @@ import { useAuth } from '../AuthContext'
 import { useTranslation } from 'react-i18next'
 import { LanguageSwitcher } from '../components/LanguageSwitcher'
 import { MapPin, User, ChevronRight, Plus, Trash2, X, Edit2 } from 'lucide-react'
-import { getUserProfile, updateUserProfile, getUserAddresses, addUserAddress, updateUserAddress, deleteUserAddress } from '../api/endpoints'
+import { getUserProfile, updateUserProfile, getUserAddresses, addUserAddress, deleteUserAddress } from '../api/endpoints'
 
 type Address = {
   id: string
@@ -28,7 +28,7 @@ type UserProfile = {
 
 export default function Profile() {
   const { t } = useTranslation()
-  const { isAuthenticated, logout, roles, userId } = useAuth()
+  const { isAuthenticated, logout, userId } = useAuth()
   
   // Data State
   const [profile, setProfile] = useState<UserProfile | null>(null)
@@ -144,9 +144,9 @@ export default function Profile() {
     boxShadow: '0 2px 8px rgba(0,0,0,0.06)', zIndex: 10, justifyContent: 'space-between'
   }
 
-  const handleAction = (key: string) => {
-    if (key === 'my_addresses') setShowAddressList(true)
-  }
+  // const handleAction = (key: string) => {
+  //   if (key === 'my_addresses') setShowAddressList(true)
+  // }
 
   // Modal Styles
   const modalOverlayStyle: React.CSSProperties = {

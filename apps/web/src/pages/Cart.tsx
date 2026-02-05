@@ -1,22 +1,19 @@
 import { useEffect, useState } from 'react'
 import { useCart } from '../CartContext'
 import { useAuth } from '../AuthContext'
-import { useLocation } from '../context/LocationContext'
-import { apiFetch } from '../api/client'
-import { privateApi, logPrivateAxiosError } from '../api/privateApi'
+import { logPrivateAxiosError } from '../api/privateApi'
 import { track } from '../utils/track'
 import { loadRazorpay } from '../utils/loadRazorpay'
 import { initiatePayment, verifyPayment, getUserAddresses, checkout, getUserProfile } from '../api/endpoints'
 
 import { CategoryGrid } from '../components/CategoryGrid'
 import { useTranslation } from 'react-i18next'
-import { MapPin, ChevronRight, Plus, X, Check } from 'lucide-react'
+import { MapPin, X, Check } from 'lucide-react'
 
 export default function Cart() {
   const { t } = useTranslation()
   const { items, increment, decrement, subtotal, total, clearCart } = useCart()
   const { jwt } = useAuth()
-  const { location } = useLocation()
   
   const [placing, setPlacing] = useState(false)
   const [inventoryError, setInventoryError] = useState('')

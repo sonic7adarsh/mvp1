@@ -73,7 +73,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (!jwt) return
 
-    let timer: NodeJS.Timeout
+    let timer: ReturnType<typeof setTimeout>
     try {
       const parts = jwt.split('.')
       if (parts.length === 3) {

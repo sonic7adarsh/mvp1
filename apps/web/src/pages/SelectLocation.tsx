@@ -1,7 +1,9 @@
 import React, { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useLocation } from '../context/LocationContext'
 
 export default function SelectLocation() {
+  const { t } = useTranslation()
   const { setLocation } = useLocation()
   const [manualQuery, setManualQuery] = useState('')
 

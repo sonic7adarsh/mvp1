@@ -51,7 +51,7 @@ function Content() {
     }
   }
 
-  let Page: () => React.ReactElement
+  let Page: React.ComponentType<any>
 
   if (route.startsWith('/category/')) {
      Page = CategoryProducts

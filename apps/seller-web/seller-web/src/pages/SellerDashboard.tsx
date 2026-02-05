@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from 'react'
+import { useEffect, useState } from 'react'
 import { useAuth } from '../AuthContext'
 import { apiFetch } from '../api/client'
 import { ShoppingBag, ClipboardList, Banknote, Store } from 'lucide-react'
@@ -24,12 +24,12 @@ export default function SellerDashboard() {
       
       // 1. Fetch Store Context (Using GET /api/seller/store)
       let storeData = null
-      let storeId = ''
+      // let storeId = '' // Unused
       
       try {
         const storeRes = await apiFetch<any>('/api/seller/store', {}, { jwt })
         storeData = storeRes
-        storeId = storeRes.id
+        // storeId = storeRes.id
       } catch (e) {
         console.error('Failed to fetch store info', e)
         // Fallback: Try /stores just in case
@@ -38,7 +38,7 @@ export default function SellerDashboard() {
           const stores = storesRes.stores || (Array.isArray(storesRes) ? storesRes : [])
           if (stores.length > 0) {
             const firstStore = stores[0]
-            storeId = firstStore.id
+            // storeId = firstStore.id
             storeData = { ...firstStore }
           }
         } catch {}
@@ -61,29 +61,23 @@ export default function SellerDashboard() {
 
       // 2. Fetch Stats (GET /api/seller/dashboard-stats)
       let statsData = { today: 0, pending: 0, earnings: 0 }
+      // let productsData: any[] = []
+      
       try {
-        statsData = await apiFetch<any>('/api/seller/dashboard-stats', {}, { jwt })
+        const statsRes = await apiFetch('/api/seller/stats', { method: 'GET' }, { jwt })
+        if (statsRes) statsData = statsRes as any
+        
+        // const productsRes = await apiFetch('/api/seller/products', { method: 'GET' }, { jwt })
+        // if (productsRes && Array.isArray(productsRes)) productsData = productsRes
       } catch (e) {
         console.error('Failed to fetch stats', e)
       }
 
-      // 3. Fetch Products (Use storeId if available)
-      let productsData: any[] = []
-      try {
-        if (storeId) {
-            productsData = await apiFetch<any[]>(`/api/seller/stores/${storeId}/products`, {}, { jwt })
-        } else {
-             console.warn('No store context for dashboard products')
-        }
-      } catch (e) {
-        console.warn('Products API failed', e)
-      }
-
       setStats({
-        today: statsData.today || 0,
-        pending: statsData.pending || 0,
-        products: Array.isArray(productsData) ? productsData.length : 0,
-        earnings: statsData.earnings || 0
+        today: (statsData as any).today_orders || 0,
+        pending: (statsData as any).pending_orders || 0,
+        products: (statsData as any).total_products || 0,
+        // earnings: statsData.earnings || 0 // Not in interface yet
       })
     } catch (e) {
       console.error('Failed to load dashboard data', e)

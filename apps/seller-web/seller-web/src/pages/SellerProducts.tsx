@@ -1,8 +1,8 @@
-import { useEffect, useState, useMemo } from 'react'
+import { useEffect, useState } from 'react'
+import { apiFetch } from '../api/client'
 import { useAuth } from '../AuthContext'
 import { useToast } from '../ToastContext'
-import { apiFetch } from '../api/client'
-import { Plus, Search, Filter, Package } from 'lucide-react'
+import { Plus, Search, Package } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
 type Product = {

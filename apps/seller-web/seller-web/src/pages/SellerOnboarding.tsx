@@ -12,7 +12,7 @@ export default function SellerOnboarding() {
   const { jwt } = useAuth()
   const { showToast } = useToast()
   
-  const [step, setStep] = useState(1)
+  // const [step, setStep] = useState(1) // Single step now
   const [loading, setLoading] = useState(false)
   const [formData, setFormData] = useState({
     ownerName: '',
@@ -89,9 +89,9 @@ export default function SellerOnboarding() {
     }
   }
 
-  const containerStyle: React.CSSProperties = {
-    maxWidth: 600, margin: '0 auto', padding: 20, minHeight: '100vh', background: '#fff'
-  }
+  // const containerStyle: React.CSSProperties = {
+  //   maxWidth: 600, margin: '0 auto', padding: 20, minHeight: '100vh', background: '#fff'
+  // }
 
   const headerStyle: React.CSSProperties = {
     marginBottom: 32, textAlign: 'center'
